@@ -369,9 +369,9 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
-                // Filtra e ordina le animazioni con nome "Step_n"
+                // Filtra e ordina le animazioni con nome "Stepn"
                 const stepAnimations = gltf.animations
-                    .filter(clip => /^Step_\d+$/.test(clip.name)) // Filtra solo "Step_n"
+                    .filter(clip => /^Step\d+$/.test(clip.name)) // Filtra solo "Step" seguito da numero
                     .map(clip => ({
                         clip,
                         number: parseInt(clip.name.match(/\d+$/)[0], 10) // Estrai il numero
@@ -391,7 +391,7 @@
                 });
 
                 if (stepAnimations.length === 0) {
-                    console.log("Nessuna animazione 'Step_n' trovata nel modello.");
+                    console.log("Nessuna animazione 'Stepn' trovata nel modello.");
                 }
 
                 model.children.forEach((child, index) => {
