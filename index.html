@@ -2,44 +2,14 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Visualizzatore 3D con Animazioni e BOM</title>
+    <title>Visualizzatore 3D con Animazioni</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
-        
-        /* Stili per i pannelli */
-        .panel {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .animation-panel {
-            top: 10px;
-            left: 10px;
-            width: 200px;
-        }
-        
-        .bom-panel {
-            top: 10px;
-            right: 10px;
-            width: 250px;
-        }
-        
-        .collapsible {
-            cursor: pointer;
-            padding: 5px;
-            background: #ddd;
-            margin-bottom: 5px;
-        }
-        
-        .content {
-            display: none;
-            padding: 5px;
-        }
+        .panel { position: absolute; background: rgba(255, 255, 255, 0.9); padding: 10px; }
+        .animation-panel { top: 10px; left: 10px; width: 200px; }
+        .collapsible { cursor: pointer; padding: 5px; background: #ddd; }
+        .content { display: none; padding: 5px; }
     </style>
 </head>
 <body>
@@ -52,138 +22,101 @@
         </div>
     </div>
 
-    <div id="bomPanel" class="panel bom-panel">
-        <div class="collapsible">Bill of Materials</div>
-        <div class="content" id="bomContent"></div>
-    </div>
-
-
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
     }
-}
-</script>
-    
+    </script>
+
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        let scene, camera, renderer, controls, mixer, model;
-        let animations = [];
+        let scene, camera, renderer, controls, mixer, model, animations = [];
         let clock = new THREE.Clock();
 
         init();
         animate();
 
         function init() {
-            // Scene setup
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xcccccc);
 
-            // Camera setup
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 5, 10);
 
-            // Renderer setup
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Orbit controls
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
 
-            // Lighting
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambientLight);
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
             directionalLight.position.set(0, 1, 0);
             scene.add(directionalLight);
 
-            // Load GLB model
             const loader = new GLTFLoader();
             loader.load(
-                'https://raw.githubusercontent.com/sandropertini/Models/main/tagl_an.glb', // Sostituisci con il percorso del tuo file .glb
+                'https://raw.githubusercontent.com/sandropertini/Models/main/W037089_ASM_AN_01.glb',
                 (gltf) => {
                     model = gltf.scene;
                     scene.add(model);
+                    console.log('Modello caricato:', gltf);
 
-                    // Setup animations
                     if (gltf.animations && gltf.animations.length) {
+                        console.log('Animazioni trovate:', gltf.animations);
                         mixer = new THREE.AnimationMixer(model);
                         animations = gltf.animations;
                         populateAnimationSelect();
+                    } else {
+                        console.log('Nessuna animazione trovata nel file');
                     }
-
-                    // Generate BOM (esempio con proprietà personalizzate)
-                    generateBOM(gltf);
                 },
-                undefined,
-                (error) => console.error('Errore nel caricamento:', error)
+                (progress) => console.log('Caricamento:', progress.loaded / progress.total * 100 + '%'),
+                (error) => console.error('Errore caricamento:', error)
             );
 
-            // Window resize handler
             window.addEventListener('resize', onWindowResize);
-
-            // Setup collapsible panels
             setupCollapsiblePanels();
         }
 
         function populateAnimationSelect() {
             const select = document.getElementById('animationSelect');
+            select.innerHTML = '';
             animations.forEach((anim, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.text = anim.name || `Animazione ${index}`;
                 select.appendChild(option);
             });
-        }
-
-        function generateBOM(gltf) {
-            const bomContent = document.getElementById('bomContent');
-            let bomHTML = '<table><tr><th>Componente</th><th>Dettagli</th></tr>';
-            
-            // Esempio: estrai informazioni dal modello
-            gltf.scene.traverse((child) => {
-                if (child.isMesh) {
-                    bomHTML += `<tr>
-                        <td>${child.name || 'Unnamed'}</td>
-                        <td>${child.material?.name || 'No material'}</td>
-                    </tr>`;
-                }
-            });
-            
-            bomHTML += '</table>';
-            bomContent.innerHTML = bomHTML;
-        }
-
-        function setupCollapsiblePanels() {
-            const collapsibles = document.getElementsByClassName('collapsible');
-            for (let collapsible of collapsibles) {
-                collapsible.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    const content = this.nextElementSibling;
-                    content.style.display = content.style.display === 'block' ? 'none' : 'block';
-                });
-            }
+            console.log('Opzioni nel select:', select.options.length);
         }
 
         function playAnimation() {
-            if (!mixer) return;
+            if (!mixer) {
+                console.log('Mixer non inizializzato');
+                return;
+            }
             const select = document.getElementById('animationSelect');
             const index = parseInt(select.value);
+            console.log('Riproduco animazione:', animations[index].name);
             mixer.stopAllAction();
             const action = mixer.clipAction(animations[index]);
-            action.play();
+            action.reset().play();
         }
 
         function stopAnimation() {
-            if (mixer) mixer.stopAllAction();
+            if (mixer) {
+                mixer.stopAllAction();
+                console.log('Animazioni fermate');
+            }
         }
 
         function onWindowResize() {
@@ -198,6 +131,17 @@
             if (mixer) mixer.update(delta);
             controls.update();
             renderer.render(scene, camera);
+        }
+
+        function setupCollapsiblePanels() {
+            const collapsibles = document.getElementsByClassName('collapsible');
+            for (let collapsible of collapsibles) {
+                collapsible.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const content = this.nextElementSibling;
+                    content.style.display = content.style.display === 'block' ? 'none' : 'block';
+                });
+            }
         }
     </script>
 </body>
