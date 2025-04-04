@@ -123,7 +123,7 @@
         #controlsBar button {
             width: 48px;
             height: 48px;
-            font-size: 24px;
+            font-size: 0; /* Rimuove il testo per usare solo SVG */
             border: none;
             background: linear-gradient(135deg, #4a90e2, #357abd);
             color: white;
@@ -136,7 +136,10 @@
             appearance: none;
             box-shadow: none;
             position: relative;
-            overflow: hidden; /* Evita effetti visivi indesiderati */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0; /* Rimuove padding per centrare SVG */
         }
         
         #controlsBar button:hover {
@@ -150,7 +153,13 @@
             outline: none !important;
             box-shadow: none !important;
             border: none !important;
-            background: linear-gradient(135deg, #4a90e2, #357abd) !important; /* Forza il gradiente */
+            background: linear-gradient(135deg, #4a90e2, #357abd) !important;
+        }
+
+        #controlsBar button svg {
+            width: 24px;
+            height: 24px;
+            fill: white; /* Colore dell'icona */
         }
 
         #topControls {
@@ -280,9 +289,15 @@
         </div>
     </div>
     <div id="controlsBar">
-        <button id="playAllButton" title="Esegui tutte">▶</button>
-        <button id="pauseButton" title="Pausa">⏸</button>
-        <button id="stopButton" title="Ferma">⏹</button>
+        <button id="playAllButton" title="Esegui tutte">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button id="pauseButton" title="Pausa">
+            <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
+        </button>
+        <button id="stopButton" title="Ferma">
+            <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+        </button>
     </div>
     <div id="topControls">
         <button id="zoomInButton" title="Zoom In">+</button>
@@ -511,7 +526,7 @@
 
         function onMouseClick(event) {
             event.preventDefault();
-            if (event.shiftKey) return; // Ignora il clic singolo se Shift è premuto
+            if (event.shiftKey) return;
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -535,6 +550,7 @@
             if (!event.shiftKey || !model) return;
 
             isDragging = true;
+            controls.enabled = false; // Disabilita i controlli orbitali
             startX = event.clientX;
             startY = event.clientY;
             selectionRectangle.style.left = `${startX}px`;
@@ -563,6 +579,7 @@
             if (!isDragging) return;
 
             isDragging = false;
+            controls.enabled = true; // Riabilita i controlli orbitali
             selectionRectangle.style.display = 'none';
 
             const rect = selectionRectangle.getBoundingClientRect();
@@ -581,7 +598,7 @@
 
                         if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
                             const button = buttonMap.get(part);
-                            highlightPart(part, button, true); // Tratta come selezione multipla
+                            highlightPart(part, button, true);
                         }
                     }
                 });
