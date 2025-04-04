@@ -211,19 +211,31 @@
         }
 
         #viewModeSelect, #themeSelect {
+            width: 40px;
             height: 40px;
-            padding: 0 10px;
+            padding: 0;
             border: none;
-            border-radius: 5px;
+            border-radius: 50%;
             background: linear-gradient(135deg, #4a90e2, #357abd);
             color: white;
-            font-size: 16px;
+            font-size: 20px;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: transform 0.2s, background 0.3s;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            text-align: center;
         }
 
         #viewModeSelect:hover, #themeSelect:hover {
             background: linear-gradient(135deg, #5aa0f2, #458acd);
+            transform: scale(1.1);
+        }
+
+        #viewModeSelect option, #themeSelect option {
+            background: #357abd;
+            color: white;
+            font-size: 16px;
         }
 
         #lightSliderContainer {
@@ -280,15 +292,6 @@
             border-radius: 5px;
             font-size: 14px;
             transition: border-color 0.3s, background 0.3s;
-        }
-
-        #selectionRectangle {
-            position: absolute;
-            border: 2px dashed #ff0000;
-            background: rgba(255, 0, 0, 0.1);
-            pointer-events: none;
-            z-index: 99;
-            display: none;
         }
 
         /* Tema scuro */
@@ -366,19 +369,18 @@
         <button id="toggleLightButton" title="Intensità Luci">💡</button>
         <button id="showAllButton" title="Mostra Tutti">👁️</button>
         <select id="viewModeSelect" title="Modalità Vista">
-            <option value="solid">Solido</option>
-            <option value="wireframe">Wireframe</option>
-            <option value="transparent">Trasparente</option>
+            <option value="solid" title="Solido">🟥</option>
+            <option value="wireframe" title="Wireframe">🕸️</option>
+            <option value="transparent" title="Trasparente">🔍</option>
         </select>
         <select id="themeSelect" title="Tema">
-            <option value="light">Chiaro</option>
-            <option value="dark">Scuro</option>
+            <option value="light" title="Chiaro">☀️</option>
+            <option value="dark" title="Scuro">🌙</option>
         </select>
     </div>
     <div id="lightSliderContainer">
         <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
     </div>
-    <div id="selectionRectangle"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/loaders/GLTFLoader.js"></script>
@@ -427,53 +429,6 @@
         let activeAnimationItem = null;
         let selectedParts = new Set();
         let originalMaterials = new Map();
-        let labels = [];
-
-        // Variabili per il riquadro di selezione
-        const selectionRectangle = document.getElementById('selectionRectangle');
-        let isDragging = false;
-        let startX, startY;
-
-        // Funzione per creare etichette fluttuanti
-        function createLabel(part, name) {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            context.font = '24px Roboto';
-            const textWidth = context.measureText(name).width;
-            canvas.width = textWidth + 20;
-            canvas.height = 40;
-            context.font = '24px Roboto';
-            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            context.fillStyle = 'white';
-            context.fillText(name, 10, 30);
-
-            const texture = new THREE.Texture(canvas);
-            texture.needsUpdate = true;
-
-            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-            const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.scale.set(canvas.width / 100, canvas.height / 100, 1);
-            sprite.visible = false;
-
-            const position = new THREE.Vector3();
-            part.getWorldPosition(position);
-            sprite.position.copy(position);
-            sprite.position.y += 0.5; // Sopra la parte
-            scene.add(sprite);
-
-            return sprite;
-        }
-
-        // Funzione per aggiornare la posizione delle etichette
-        function updateLabels() {
-            labels.forEach(label => {
-                const screenPos = label.position.clone().project(camera);
-                const x = (screenPos.x + 1) * window.innerWidth / 2;
-                const y = (-screenPos.y + 1) * window.innerHeight / 2;
-                label.visible = screenPos.z < 1; // Mostra solo se davanti alla telecamera
-            });
-        }
 
         // Funzione per applicare cumulativamente le animazioni precedenti
         function applyPreviousAnimations(index) {
@@ -637,7 +592,6 @@
 
         function onMouseClick(event) {
             event.preventDefault();
-            if (event.shiftKey) return;
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -675,69 +629,6 @@
             camera.position.set(center.x, center.y, center.z + cameraZ);
             controls.target.copy(center);
             controls.update();
-        }
-
-        // Gestione del riquadro di selezione con Shift
-        function startSelection(event) {
-            if (!event.shiftKey || !model) return;
-
-            event.preventDefault();
-            isDragging = true;
-            controls.enabled = false;
-            startX = event.clientX;
-            startY = event.clientY;
-            selectionRectangle.style.left = `${startX}px`;
-            selectionRectangle.style.top = `${startY}px`;
-            selectionRectangle.style.width = '0px';
-            selectionRectangle.style.height = '0px';
-            selectionRectangle.style.display = 'block';
-        }
-
-        function updateSelection(event) {
-            if (!isDragging) return;
-
-            const currentX = event.clientX;
-            const currentY = event.clientY;
-
-            const width = currentX - startX;
-            const height = currentY - startY;
-
-            selectionRectangle.style.left = `${width < 0 ? currentX : startX}px`;
-            selectionRectangle.style.top = `${height < 0 ? currentY : startY}px`;
-            selectionRectangle.style.width = `${Math.abs(width)}px`;
-            selectionRectangle.style.height = `${Math.abs(height)}px`;
-        }
-
-        function endSelection(event) {
-            if (!isDragging) return;
-
-            isDragging = false;
-            selectionRectangle.style.display = 'none';
-
-            const rect = selectionRectangle.getBoundingClientRect();
-            const minX = rect.left;
-            const maxX = rect.right;
-            const minY = rect.top;
-            const maxY = rect.bottom;
-
-            modelParts.forEach(part => {
-                part.traverse(child => {
-                    if (child.isMesh) {
-                        const position = child.getWorldPosition(new THREE.Vector3());
-                        const screenPos = position.project(camera);
-                        const x = (screenPos.x + 1) * window.innerWidth / 2;
-                        const y = (-screenPos.y + 1) * window.innerHeight / 2;
-
-                        if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
-                            const button = buttonMap.get(part);
-                            highlightPart(part, button, true);
-                        }
-                    }
-                });
-            });
-
-            controls.enabled = true;
-            controls.reset();
         }
 
         // Carica il modello GLB
@@ -778,8 +669,6 @@
                     const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
                     button.textContent = partName;
                     button.addEventListener('click', (e) => highlightPart(child, button, e.ctrlKey));
-                    button.addEventListener('mouseenter', () => labels[index].visible = true);
-                    button.addEventListener('mouseleave', () => labels[index].visible = false);
                     bomItem.appendChild(button);
                     const visibilityButton = document.createElement('button');
                     visibilityButton.className = 'visibility-toggle';
@@ -789,10 +678,6 @@
                     bomList.appendChild(bomItem);
                     buttonMap.set(child, button);
                     visibilityMap.set(child, false);
-
-                    // Crea etichetta fluttuante
-                    const label = createLabel(child, partName);
-                    labels.push(label);
                 });
 
                 document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
@@ -912,9 +797,6 @@
             });
         });
 
-        window.addEventListener('mousedown', startSelection);
-        window.addEventListener('mousemove', updateSelection);
-        window.addEventListener('mouseup', endSelection);
         window.addEventListener('click', onMouseClick);
 
         const clock = new THREE.Clock();
@@ -923,7 +805,6 @@
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             controls.update();
-            updateLabels();
             renderer.render(scene, camera);
         }
         animate();
