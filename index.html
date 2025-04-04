@@ -1,101 +1,361 @@
-<!-- HTML: Aggiungi il pulsante "Esegui tutte" nel pannello delle animazioni -->
-<div id="animationContainer">
-    <div class="panel" id="animationPanel">
-        <div class="panel-header">Animazioni</div>
-        <div class="panel-content" id="animationControls">
-            <button id="stopButton">Ferma</button>
-            <button id="playAllButton">Esegui tutte</button> <!-- Nuovo pulsante -->
-            <!-- Pulsanti animazioni aggiunti dinamicamente -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualizza file GLB con Animazioni e Distinta Base</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100vh; }
+        
+        #animationContainer { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            z-index: 100; 
+            width: 250px;
+        }
+        
+        #bomContainer { 
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            z-index: 100; 
+            width: 250px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.9);
+            margin-bottom: 5px;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .panel-header {
+            padding: 10px;
+            cursor: pointer;
+            background: #f5f5f5;
+            border-radius: 3px;
+            user-select: none;
+        }
+        
+        .panel-header:hover {
+            background: #e5e5e5;
+        }
+        
+        .panel-content {
+            padding: 10px;
+            max-height: 40vh;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .panel-content.active {
+            display: block;
+        }
+        
+        .bom-item {
+            display: flex;
+            align-items: center;
+            margin: 2px 0;
+        }
+        
+        .bom-button { 
+            flex-grow: 1;
+            padding: 5px 10px; 
+            cursor: pointer; 
+            border: none;
+            background: #fff;
+            border-radius: 3px;
+            text-align: left;
+        }
+        
+        .bom-button:hover { 
+            background: #f0f0f0; 
+        }
+        
+        .bom-button.selected {
+            background: #ffcccc;
+            font-weight: bold;
+        }
+        
+        .visibility-toggle {
+            width: 20px;
+            height: 20px;
+            margin-left: 5px;
+            cursor: pointer;
+            background: #ddd;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .visibility-toggle:hover {
+            background: #ccc;
+        }
+        
+        .visibility-toggle.hidden {
+            background: #ff9999;
+        }
+    </style>
+</head>
+<body>
+    <div id="animationContainer">
+        <div class="panel" id="animationPanel">
+            <div class="panel-header">Animazioni</div>
+            <div class="panel-content" id="animationControls">
+                <button id="stopButton">Ferma</button>
+                <button id="playAllButton">Esegui tutte</button>
+                <!-- Pulsanti animazioni aggiunti dinamicamente -->
+            </div>
         </div>
     </div>
-</div>
+    <div id="bomContainer">
+        <div class="panel" id="bomPanel">
+            <div class="panel-header">Distinta Base</div>
+            <div class="panel-content" id="bomControls">
+                <!-- Pulsanti distinta base aggiunti dinamicamente -->
+            </div>
+        </div>
+    </div>
 
-<script>
-    // ... (il resto del codice rimane invariato fino al caricamento del modello)
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // Inizializza la scena
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xdddddd);
 
-    // Variabili globali (aggiungi questa per tracciare la sequenza)
-    let isPlayingAll = false;
+        // Inizializza la telecamera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
 
-    // Funzione per eseguire tutte le animazioni in sequenza
-    function playAllAnimationsSequentially() {
-        if (mixer && actions.length > 0 && !isPlayingAll) {
-            isPlayingAll = true;
-            let currentIndex = 0;
+        // Inizializza il renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-            function playNext() {
-                if (currentIndex >= actions.length) {
-                    isPlayingAll = false;
-                    return;
+        // Aggiungi i controlli orbitali
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.0;
+        controls.minDistance = 0.1;
+        controls.maxDistance = 1;
+
+        // Aggiungi luci
+        const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+        light.position.set(0, 20, 0);
+        scene.add(light);
+        const directionalLight = new THREE.DirectionalLight(0xffffff);
+        directionalLight.position.set(0, 20, 10);
+        scene.add(directionalLight);
+
+        // Variabili globali
+        let mixer;
+        let actions = [];
+        let modelParts = [];
+        let model;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        const animationControls = document.getElementById('animationControls');
+        const bomControls = document.getElementById('bomControls');
+        let buttonMap = new Map();
+        let visibilityMap = new Map();
+        let isPlayingAll = false; // Per tracciare la sequenza
+
+        // Funzioni per animazioni e BOM
+        function playAnimation(index) {
+            if (mixer && actions[index]) {
+                actions.forEach(action => action.stop());
+                const action = actions[index];
+                action.setLoop(THREE.LoopOnce); // Esecuzione singola
+                action.clampWhenFinished = true; // Ferma al frame finale
+                action.reset(); // Resetta al frame iniziale
+                action.play();
+            }
+        }
+
+        function stopAllAnimations() {
+            if (mixer) {
+                actions.forEach(action => action.stop());
+                isPlayingAll = false; // Ferma anche la sequenza
+            }
+        }
+
+        function playAllAnimationsSequentially() {
+            if (mixer && actions.length > 0 && !isPlayingAll) {
+                isPlayingAll = true;
+                let currentIndex = 0;
+
+                function playNext() {
+                    if (currentIndex >= actions.length || !isPlayingAll) {
+                        isPlayingAll = false;
+                        return;
+                    }
+
+                    const action = actions[currentIndex];
+                    action.reset();
+                    action.play();
+
+                    mixer.addEventListener('finished', function onFinished(e) {
+                        if (e.action === action) {
+                            mixer.removeEventListener('finished', onFinished);
+                            currentIndex++;
+                            playNext();
+                        }
+                    });
                 }
 
-                const action = actions[currentIndex];
-                action.reset(); // Resetta l'animazione al frame iniziale
-                action.play();
-
-                // Listener per passare alla successiva quando finisce
-                mixer.addEventListener('finished', function onFinished(e) {
-                    if (e.action === action) {
-                        mixer.removeEventListener('finished', onFinished); // Rimuovi listener
-                        currentIndex++;
-                        playNext();
-                    }
-                });
+                playNext();
             }
-
-            playNext();
         }
-    }
 
-    // Modifica alla funzione playAnimation per evitare loop
-    function playAnimation(index) {
-        if (mixer && actions[index]) {
-            actions.forEach(action => action.stop());
-            const action = actions[index];
-            action.setLoop(THREE.LoopOnce); // Imposta esecuzione singola
-            action.clampWhenFinished = true; // Ferma al frame finale
-            action.reset(); // Resetta al frame iniziale
-            action.play();
-        }
-    }
+        let originalMaterials = new Map();
+        function highlightPart(part, button) {
+            if (!model) return;
 
-    // Carica il modello GLB (modifica questa parte)
-    loader.load(
-        'https://raw.githubusercontent.com/sandropertini/Models/main/W037089_ASM_AN.glb',
-        function (gltf) {
-            model = gltf.scene;
-            scene.add(model);
+            model.traverse((child) => {
+                if (child.isMesh && originalMaterials.has(child)) {
+                    child.material = originalMaterials.get(child);
+                }
+            });
+            buttonMap.forEach((btn) => btn.classList.remove('selected'));
 
-            // Inizializza il mixer per le animazioni
-            mixer = new THREE.AnimationMixer(model);
-
-            // Aggiungi pulsanti per le animazioni
-            gltf.animations.forEach((clip, index) => {
-                const action = mixer.clipAction(clip);
-                action.setLoop(THREE.LoopOnce); // Imposta esecuzione singola
-                action.clampWhenFinished = true; // Ferma al frame finale
-                actions.push(action);
-                const button = document.createElement('button');
-                button.textContent = clip.name || `Animazione ${index}`;
-                button.addEventListener('click', () => playAnimation(index));
-                animationControls.appendChild(button);
+            part.traverse((child) => {
+                if (child.isMesh) {
+                    if (!originalMaterials.has(child)) {
+                        originalMaterials.set(child, child.material.clone());
+                    }
+                    child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                }
             });
 
-            if (gltf.animations.length === 0) {
-                console.log("Nessuna animazione trovata nel modello.");
+            if (button) {
+                button.classList.add('selected');
             }
-
-            // Aggiungi evento al pulsante "Esegui tutte"
-            document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
-
-            // ... (il resto della gestione BOM rimane invariato)
-        },
-        function (xhr) {
-            console.log((xhr.loaded / xhr.total * 100) + '% caricato');
-        },
-        function (error) {
-            console.error('Errore durante il caricamento:', error);
         }
-    );
 
-    // ... (il resto del codice rimane invariato)
-</script>
+        function toggleVisibility(part, toggleButton) {
+            const isHidden = visibilityMap.get(part) || false;
+            const newState = !isHidden;
+            visibilityMap.set(part, newState);
+
+            part.traverse((child) => {
+                if (child.isMesh) {
+                    child.visible = !newState;
+                }
+            });
+
+            toggleButton.classList.toggle('hidden', newState);
+            toggleButton.textContent = newState ? '👁️‍🗨️' : '👁️';
+        }
+
+        function onMouseClick(event) {
+            event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(model.children, true);
+            if (intersects.length > 0) {
+                const intersectedObject = intersects[0].object;
+                let parent = intersectedObject;
+                while (parent.parent && parent.parent !== model) {
+                    parent = parent.parent;
+                }
+                if (modelParts.includes(parent)) {
+                    const button = buttonMap.get(parent);
+                    highlightPart(parent, button);
+                }
+            }
+        }
+
+        // Carica il modello GLB
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+            'https://raw.githubusercontent.com/sandropertini/Models/main/W037089_ASM_AN.glb',
+            function (gltf) {
+                model = gltf.scene;
+                scene.add(model);
+
+                mixer = new THREE.AnimationMixer(model);
+
+                gltf.animations.forEach((clip, index) => {
+                    const action = mixer.clipAction(clip);
+                    action.setLoop(THREE.LoopOnce); // Esecuzione singola
+                    action.clampWhenFinished = true; // Ferma al frame finale
+                    actions.push(action);
+                    const button = document.createElement('button');
+                    button.textContent = clip.name || `Animazione ${index}`;
+                    button.addEventListener('click', () => playAnimation(index));
+                    animationControls.appendChild(button);
+                });
+
+                if (gltf.animations.length === 0) {
+                    console.log("Nessuna animazione trovata nel modello.");
+                }
+
+                model.children.forEach((child, index) => {
+                    modelParts.push(child);
+                    const bomItem = document.createElement('div');
+                    bomItem.className = 'bom-item';
+                    const button = document.createElement('button');
+                    button.className = 'bom-button';
+                    const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
+                    button.textContent = partName;
+                    button.addEventListener('click', () => highlightPart(child, button));
+                    bomItem.appendChild(button);
+                    const visibilityButton = document.createElement('button');
+                    visibilityButton.className = 'visibility-toggle';
+                    visibilityButton.textContent = '👁️';
+                    visibilityButton.addEventListener('click', () => toggleVisibility(child, visibilityButton));
+                    bomItem.appendChild(visibilityButton);
+                    bomControls.appendChild(bomItem);
+                    buttonMap.set(child, button);
+                    visibilityMap.set(child, false);
+                    console.log(`Nome child: ${child.name}`);
+                });
+
+                if (model.children.length === 0) {
+                    console.log("Nessun child trovato nel modello.");
+                }
+
+                // Aggiungi eventi ai pulsanti
+                document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
+                document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
+            },
+            function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% caricato');
+            },
+            function (error) {
+                console.error('Errore durante il caricamento:', error);
+            }
+        );
+
+        // Gestione collapsible panels
+        document.querySelectorAll('.panel-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                content.classList.toggle('active');
+            });
+        });
+
+        window.addEventListener('click', onMouseClick, false);
+
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
