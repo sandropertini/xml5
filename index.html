@@ -130,10 +130,11 @@
             border-radius: 50%;
             cursor: pointer;
             transition: transform 0.2s, background 0.3s;
-            outline: none; /* Rimuove il bordo di focus */
-            -webkit-appearance: none; /* Uniforma su browser Webkit */
-            -moz-appearance: none; /* Uniforma su Firefox */
-            appearance: none; /* Rimuove stili predefiniti */
+            outline: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            box-shadow: none !important; /* Forza la rimozione di ombre */
         }
         
         #controlsBar button:hover {
@@ -141,9 +142,10 @@
             transform: scale(1.1);
         }
 
-        #controlsBar button:focus {
-            outline: none; /* Assicura la rimozione del bordo al focus */
-            box-shadow: none; /* Rimuove eventuali ombre di focus */
+        #controlsBar button:focus, #controlsBar button:active {
+            outline: none !important;
+            box-shadow: none !important;
+            border: none !important;
         }
 
         #topControls {
@@ -182,9 +184,10 @@
             transform: scale(1.1);
         }
 
-        #topControls button:focus {
-            outline: none;
-            box-shadow: none;
+        #topControls button:focus, #topControls button:active {
+            outline: none !important;
+            box-shadow: none !important;
+            border: none !important;
         }
 
         #lightSliderContainer {
@@ -320,7 +323,8 @@
         let visibilityMap = new Map();
         let isPlayingAll = false;
         let activeAnimationItem = null;
-        let selectedPart = null;
+        let selectedParts = new Set(); // Set per tracciare più parti selezionate
+        let originalMaterials = new Map();
 
         // Funzione per applicare cumulativamente le animazioni precedenti
         function applyPreviousAnimations(index) {
@@ -413,40 +417,43 @@
             }
         }
 
-        let originalMaterials = new Map();
-        function highlightPart(part, button) {
+        function highlightPart(part, button, ctrlKey) {
             if (!model) return;
 
-            if (selectedPart === part) {
-                model.traverse((child) => {
+            if (!ctrlKey) {
+                // Senza CTRL: deseleziona tutto e seleziona solo la parte corrente
+                selectedParts.forEach(p => {
+                    p.traverse(child => {
+                        if (child.isMesh && originalMaterials.has(child)) {
+                            child.material = originalMaterials.get(child);
+                        }
+                    });
+                    buttonMap.get(p).classList.remove('selected');
+                });
+                selectedParts.clear();
+            }
+
+            if (selectedParts.has(part)) {
+                // Deseleziona se già selezionato
+                part.traverse(child => {
                     if (child.isMesh && originalMaterials.has(child)) {
                         child.material = originalMaterials.get(child);
                     }
                 });
-                buttonMap.forEach((btn) => btn.classList.remove('selected'));
-                selectedPart = null;
-                return;
-            }
-
-            model.traverse((child) => {
-                if (child.isMesh && originalMaterials.has(child)) {
-                    child.material = originalMaterials.get(child);
-                }
-            });
-            buttonMap.forEach((btn) => btn.classList.remove('selected'));
-
-            part.traverse((child) => {
-                if (child.isMesh) {
-                    if (!originalMaterials.has(child)) {
-                        originalMaterials.set(child, child.material.clone());
+                button.classList.remove('selected');
+                selectedParts.delete(part);
+            } else {
+                // Seleziona la parte
+                part.traverse(child => {
+                    if (child.isMesh) {
+                        if (!originalMaterials.has(child)) {
+                            originalMaterials.set(child, child.material.clone());
+                        }
+                        child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                     }
-                    child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-                }
-            });
-
-            if (button) {
+                });
                 button.classList.add('selected');
-                selectedPart = part;
+                selectedParts.add(part);
             }
         }
 
@@ -479,9 +486,29 @@
                 }
                 if (modelParts.includes(parent)) {
                     const button = buttonMap.get(parent);
-                    highlightPart(parent, button);
+                    highlightPart(parent, button, event.ctrlKey);
                 }
             }
+        }
+
+        // Nascondi oggetti selezionati con il tasto "H"
+        function hideSelectedParts() {
+            selectedParts.forEach(part => {
+                const toggleButton = buttonMap.get(part).nextElementSibling;
+                if (!visibilityMap.get(part)) { // Nascondi solo se non è già nascosto
+                    toggleVisibility(part, toggleButton);
+                }
+            });
+            // Opzionale: deseleziona dopo aver nascosto
+            selectedParts.forEach(part => {
+                part.traverse(child => {
+                    if (child.isMesh && originalMaterials.has(child)) {
+                        child.material = originalMaterials.get(child);
+                    }
+                });
+                buttonMap.get(part).classList.remove('selected');
+            });
+            selectedParts.clear();
         }
 
         // Carica il modello GLB
@@ -525,7 +552,7 @@
                     button.className = 'bom-button';
                     const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
                     button.textContent = partName;
-                    button.addEventListener('click', () => highlightPart(child, button));
+                    button.addEventListener('click', (e) => highlightPart(child, button, e.ctrlKey));
                     bomItem.appendChild(button);
                     const visibilityButton = document.createElement('button');
                     visibilityButton.className = 'visibility-toggle';
@@ -569,7 +596,6 @@
                     directionalLight.intensity = intensity;
                 });
 
-                // Nascondi lo slider cliccando fuori
                 document.addEventListener('click', (e) => {
                     if (!lightSliderContainer.contains(e.target) && !lightButton.contains(e.target)) {
                         lightSliderContainer.style.display = 'none';
@@ -592,6 +618,13 @@
                         const button = item.getElementsByClassName('bom-button')[0];
                         const text = button.textContent.toLowerCase();
                         item.style.display = text.includes(searchText) ? '' : 'none';
+                    }
+                });
+
+                // Listener per il tasto "H"
+                document.addEventListener('keydown', (e) => {
+                    if (e.key.toLowerCase() === 'h' && selectedParts.size > 0) {
+                        hideSelectedParts();
                     }
                 });
             },
