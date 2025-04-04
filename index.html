@@ -134,7 +134,9 @@
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
-            box-shadow: none !important; /* Forza la rimozione di ombre */
+            box-shadow: none;
+            position: relative;
+            overflow: hidden; /* Evita effetti visivi indesiderati */
         }
         
         #controlsBar button:hover {
@@ -142,10 +144,13 @@
             transform: scale(1.1);
         }
 
-        #controlsBar button:focus, #controlsBar button:active {
+        #controlsBar button:focus, 
+        #controlsBar button:active, 
+        #controlsBar button:focus-visible {
             outline: none !important;
             box-shadow: none !important;
             border: none !important;
+            background: linear-gradient(135deg, #4a90e2, #357abd) !important; /* Forza il gradiente */
         }
 
         #topControls {
@@ -184,7 +189,9 @@
             transform: scale(1.1);
         }
 
-        #topControls button:focus, #topControls button:active {
+        #topControls button:focus, 
+        #topControls button:active, 
+        #topControls button:focus-visible {
             outline: none !important;
             box-shadow: none !important;
             border: none !important;
@@ -243,6 +250,15 @@
             border-radius: 5px;
             font-size: 14px;
         }
+
+        #selectionRectangle {
+            position: absolute;
+            border: 2px dashed #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+            pointer-events: none;
+            z-index: 99;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -277,6 +293,7 @@
     <div id="lightSliderContainer">
         <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
     </div>
+    <div id="selectionRectangle"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/loaders/GLTFLoader.js"></script>
@@ -323,8 +340,13 @@
         let visibilityMap = new Map();
         let isPlayingAll = false;
         let activeAnimationItem = null;
-        let selectedParts = new Set(); // Set per tracciare più parti selezionate
+        let selectedParts = new Set();
         let originalMaterials = new Map();
+
+        // Variabili per il riquadro di selezione
+        const selectionRectangle = document.getElementById('selectionRectangle');
+        let isDragging = false;
+        let startX, startY;
 
         // Funzione per applicare cumulativamente le animazioni precedenti
         function applyPreviousAnimations(index) {
@@ -421,7 +443,6 @@
             if (!model) return;
 
             if (!ctrlKey) {
-                // Senza CTRL: deseleziona tutto e seleziona solo la parte corrente
                 selectedParts.forEach(p => {
                     p.traverse(child => {
                         if (child.isMesh && originalMaterials.has(child)) {
@@ -434,7 +455,6 @@
             }
 
             if (selectedParts.has(part)) {
-                // Deseleziona se già selezionato
                 part.traverse(child => {
                     if (child.isMesh && originalMaterials.has(child)) {
                         child.material = originalMaterials.get(child);
@@ -443,7 +463,6 @@
                 button.classList.remove('selected');
                 selectedParts.delete(part);
             } else {
-                // Seleziona la parte
                 part.traverse(child => {
                     if (child.isMesh) {
                         if (!originalMaterials.has(child)) {
@@ -472,8 +491,28 @@
             toggleButton.textContent = newState ? '👁️‍🗨️' : '👁️';
         }
 
+        function hideSelectedParts() {
+            selectedParts.forEach(part => {
+                const toggleButton = buttonMap.get(part).nextElementSibling;
+                if (!visibilityMap.get(part)) {
+                    toggleVisibility(part, toggleButton);
+                }
+            });
+            selectedParts.forEach(part => {
+                part.traverse(child => {
+                    if (child.isMesh && originalMaterials.has(child)) {
+                        child.material = originalMaterials.get(child);
+                    }
+                });
+                buttonMap.get(part).classList.remove('selected');
+            });
+            selectedParts.clear();
+        }
+
         function onMouseClick(event) {
             event.preventDefault();
+            if (event.shiftKey) return; // Ignora il clic singolo se Shift è premuto
+
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
@@ -491,24 +530,62 @@
             }
         }
 
-        // Nascondi oggetti selezionati con il tasto "H"
-        function hideSelectedParts() {
-            selectedParts.forEach(part => {
-                const toggleButton = buttonMap.get(part).nextElementSibling;
-                if (!visibilityMap.get(part)) { // Nascondi solo se non è già nascosto
-                    toggleVisibility(part, toggleButton);
-                }
-            });
-            // Opzionale: deseleziona dopo aver nascosto
-            selectedParts.forEach(part => {
+        // Gestione del riquadro di selezione con Shift
+        function startSelection(event) {
+            if (!event.shiftKey || !model) return;
+
+            isDragging = true;
+            startX = event.clientX;
+            startY = event.clientY;
+            selectionRectangle.style.left = `${startX}px`;
+            selectionRectangle.style.top = `${startY}px`;
+            selectionRectangle.style.width = '0px';
+            selectionRectangle.style.height = '0px';
+            selectionRectangle.style.display = 'block';
+        }
+
+        function updateSelection(event) {
+            if (!isDragging) return;
+
+            const currentX = event.clientX;
+            const currentY = event.clientY;
+
+            const width = currentX - startX;
+            const height = currentY - startY;
+
+            selectionRectangle.style.left = `${width < 0 ? currentX : startX}px`;
+            selectionRectangle.style.top = `${height < 0 ? currentY : startY}px`;
+            selectionRectangle.style.width = `${Math.abs(width)}px`;
+            selectionRectangle.style.height = `${Math.abs(height)}px`;
+        }
+
+        function endSelection(event) {
+            if (!isDragging) return;
+
+            isDragging = false;
+            selectionRectangle.style.display = 'none';
+
+            const rect = selectionRectangle.getBoundingClientRect();
+            const minX = rect.left;
+            const maxX = rect.right;
+            const minY = rect.top;
+            const maxY = rect.bottom;
+
+            modelParts.forEach(part => {
                 part.traverse(child => {
-                    if (child.isMesh && originalMaterials.has(child)) {
-                        child.material = originalMaterials.get(child);
+                    if (child.isMesh) {
+                        const position = child.getWorldPosition(new THREE.Vector3());
+                        const screenPos = position.project(camera);
+                        const x = (screenPos.x + 1) * window.innerWidth / 2;
+                        const y = (-screenPos.y + 1) * window.innerHeight / 2;
+
+                        if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                            const button = buttonMap.get(part);
+                            highlightPart(part, button, true); // Tratta come selezione multipla
+                        }
                     }
                 });
-                buttonMap.get(part).classList.remove('selected');
             });
-            selectedParts.clear();
         }
 
         // Carica il modello GLB
@@ -540,10 +617,6 @@
                     animationList.appendChild(listItem);
                 });
 
-                if (stepAnimations.length === 0) {
-                    console.log("Nessuna animazione 'Stepn' trovata nel modello.");
-                }
-
                 model.children.forEach((child, index) => {
                     modelParts.push(child);
                     const bomItem = document.createElement('div');
@@ -564,15 +637,10 @@
                     visibilityMap.set(child, false);
                 });
 
-                if (model.children.length === 0) {
-                    console.log("Nessun child trovato nel modello.");
-                }
-
                 document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
                 document.getElementById('pauseButton').addEventListener('click', pauseAnimations);
                 document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
 
-                // Comandi in alto
                 document.getElementById('zoomInButton').addEventListener('click', () => {
                     camera.position.z -= 0.5;
                     controls.update();
@@ -610,7 +678,6 @@
                     });
                 });
 
-                // Funzione di ricerca nella distinta base
                 document.getElementById('bomSearch').addEventListener('input', (e) => {
                     const searchText = e.target.value.toLowerCase();
                     const bomItems = bomList.getElementsByClassName('bom-item');
@@ -621,7 +688,6 @@
                     }
                 });
 
-                // Listener per il tasto "H"
                 document.addEventListener('keydown', (e) => {
                     if (e.key.toLowerCase() === 'h' && selectedParts.size > 0) {
                         hideSelectedParts();
@@ -644,7 +710,10 @@
             });
         });
 
-        window.addEventListener('click', onMouseClick, false);
+        window.addEventListener('mousedown', startSelection);
+        window.addEventListener('mousemove', updateSelection);
+        window.addEventListener('mouseup', endSelection);
+        window.addEventListener('click', onMouseClick);
 
         const clock = new THREE.Clock();
         function animate() {
