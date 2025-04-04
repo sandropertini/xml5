@@ -220,30 +220,22 @@
         let activeAnimationItem = null;
 
         // Funzione per applicare cumulativamente le animazioni precedenti
-        function setPreviousAnimations(index) {
-            if (!mixer || index <= 0) return;
+        function applyPreviousAnimations(index) {
+            if (!mixer || index < 0) return;
 
             // Ferma tutte le animazioni e resetta il mixer
             actions.forEach(action => action.stop());
             mixer.time = 0;
 
-            // Esegui tutte le animazioni precedenti in sequenza
+            // Applica tutte le animazioni fino all'indice selezionato (escluso)
             for (let i = 0; i < index; i++) {
                 const action = actions[i];
                 action.reset();
                 action.setLoop(THREE.LoopOnce);
                 action.clampWhenFinished = true;
                 action.play();
-
-                // Forza l'aggiornamento completo dell'animazione
-                const duration = action.getClip().duration;
-                let time = 0;
-                const step = 0.01; // Incremento temporale piccolo per simulare l'esecuzione
-                while (time < duration) {
-                    mixer.update(step);
-                    time += step;
-                }
-                action.stop();
+                mixer.update(action.getClip().duration); // Avanza al frame finale
+                // Non fermiamo l'animazione qui, lasciamo che il mixer mantenga lo stato
             }
         }
 
@@ -254,7 +246,7 @@
                 actions.forEach(action => action.stop());
                 
                 // Applica tutte le animazioni precedenti
-                setPreviousAnimations(index);
+                applyPreviousAnimations(index);
 
                 // Esegui l'animazione selezionata
                 const action = actions[index];
