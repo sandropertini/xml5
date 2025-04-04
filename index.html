@@ -3,55 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <title>Visualizza file GLB con Animazioni e Distinta Base</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Roboto', sans-serif; 
+            color: #333;
+        }
         canvas { width: 100%; height: 100vh; }
         
-        #animationContainer { 
+        #animationContainer, #bomContainer { 
             position: absolute; 
             top: 10px; 
-            left: 10px; 
             z-index: 100; 
             width: 250px;
         }
-        
-        #bomContainer { 
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
-            z-index: 100; 
-            width: 250px;
-        }
+        #animationContainer { left: 10px; }
+        #bomContainer { right: 10px; }
         
         .panel {
-            background: rgba(255, 255, 255, 0.9);
-            margin-bottom: 5px;
-            border-radius: 3px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
         
         .panel-header {
-            padding: 10px;
+            padding: 12px;
             cursor: pointer;
-            background: #f5f5f5;
-            border-radius: 3px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            font-weight: 700;
             user-select: none;
+            transition: background 0.3s;
         }
         
         .panel-header:hover {
-            background: #e5e5e5;
+            background: linear-gradient(135deg, #5aa0f2, #458acd);
         }
         
         .panel-content {
-            padding: 10px;
+            padding: 12px;
             max-height: 40vh;
             overflow-y: auto;
             display: none;
         }
         
-        .panel-content.active {
-            display: block;
-        }
+        .panel-content.active { display: block; }
         
         .animation-list {
             list-style: none;
@@ -60,93 +60,156 @@
         }
         
         .animation-list li {
-            padding: 5px 10px;
+            padding: 8px 12px;
             cursor: pointer;
-            border-radius: 3px;
-            background: #fff;
-            margin-bottom: 2px;
+            border-radius: 5px;
+            background: #f9f9f9;
+            margin-bottom: 4px;
+            transition: background 0.2s;
         }
         
-        .animation-list li:hover {
-            background: #f0f0f0;
-        }
-        
-        .animation-list li.active {
-            background: #cce5ff;
-            font-weight: bold;
-        }
+        .animation-list li:hover { background: #e0e0e0; }
+        .animation-list li.active { background: #cce5ff; font-weight: 700; }
         
         .bom-item {
             display: flex;
             align-items: center;
-            margin: 2px 0;
+            margin: 4px 0;
         }
         
         .bom-button { 
             flex-grow: 1;
-            padding: 5px 10px; 
+            padding: 8px 12px; 
             cursor: pointer; 
             border: none;
-            background: #fff;
-            border-radius: 3px;
+            background: #f9f9f9;
+            border-radius: 5px;
             text-align: left;
+            transition: background 0.2s;
         }
         
-        .bom-button:hover { 
-            background: #f0f0f0; 
-        }
-        
-        .bom-button.selected {
-            background: #ffcccc;
-            font-weight: bold;
-        }
+        .bom-button:hover { background: #e0e0e0; }
+        .bom-button.selected { background: #ff9999; font-weight: 700; }
         
         .visibility-toggle {
-            width: 20px;
-            height: 20px;
-            margin-left: 5px;
+            width: 24px;
+            height: 24px;
+            margin-left: 8px;
             cursor: pointer;
             background: #ddd;
             border: none;
-            border-radius: 3px;
-            font-size: 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background 0.2s;
         }
         
-        .visibility-toggle:hover {
-            background: #ccc;
-        }
-        
-        .visibility-toggle.hidden {
-            background: #ff9999;
-        }
+        .visibility-toggle:hover { background: #ccc; }
+        .visibility-toggle.hidden { background: #ff9999; }
         
         #controlsBar {
             position: absolute;
-            bottom: 10px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 5px 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
         
         #controlsBar button {
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+            border: none;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            outline: none; /* Rimuove il riquadro nero */
+        }
+        
+        #controlsBar button:hover {
+            background: linear-gradient(135deg, #5aa0f2, #458acd);
+            transform: scale(1.1);
+        }
+
+        #topControls {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        #topControls button {
             width: 40px;
             height: 40px;
             font-size: 20px;
             border: none;
-            background: #f5f5f5;
-            border-radius: 5px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            border-radius: 50%;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform 0.2s, background 0.3s;
+            outline: none;
         }
-        
-        #controlsBar button:hover {
-            background: #e5e5e5;
+
+        #topControls button:hover {
+            background: linear-gradient(135deg, #5aa0f2, #458acd);
+            transform: scale(1.1);
+        }
+
+        #lightSlider {
+            width: 100px;
+            -webkit-appearance: none;
+            height: 8px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        #lightSlider:hover {
+            opacity: 1;
+        }
+
+        #lightSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        #lightSlider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        #bomSearch {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -163,7 +226,8 @@
         <div class="panel" id="bomPanel">
             <div class="panel-header">Distinta Base</div>
             <div class="panel-content" id="bomControls">
-                <!-- Pulsanti distinta base aggiunti dinamicamente -->
+                <input type="text" id="bomSearch" placeholder="Cerca nella distinta base...">
+                <div id="bomList"></div>
             </div>
         </div>
     </div>
@@ -171,6 +235,12 @@
         <button id="playAllButton" title="Esegui tutte">▶</button>
         <button id="pauseButton" title="Pausa">⏸</button>
         <button id="stopButton" title="Ferma">⏹</button>
+    </div>
+    <div id="topControls">
+        <button id="zoomInButton" title="Zoom In">+</button>
+        <button id="zoomOutButton" title="Zoom Out">-</button>
+        <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1" title="Intensità Luci">
+        <button id="showAllButton" title="Mostra Tutti">👁️</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
@@ -195,12 +265,12 @@
         controls.enableZoom = true;
         controls.zoomSpeed = 1.0;
         controls.minDistance = 0.1;
-        controls.maxDistance = 1;
+        controls.maxDistance = 10;
 
         // Aggiungi luci
-        const light = new THREE.HemisphereLight(0xffffff, 0x444444);
-        light.position.set(0, 20, 0);
-        scene.add(light);
+        const ambientLight = new THREE.HemisphereLight(0xffffff, 0x444444);
+        ambientLight.position.set(0, 20, 0);
+        scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff);
         directionalLight.position.set(0, 20, 10);
         scene.add(directionalLight);
@@ -213,49 +283,42 @@
         let raycaster = new THREE.Raycaster();
         let mouse = new THREE.Vector2();
         const animationList = document.getElementById('animationList');
-        const bomControls = document.getElementById('bomControls');
+        const bomList = document.getElementById('bomList');
         let buttonMap = new Map();
         let visibilityMap = new Map();
         let isPlayingAll = false;
         let activeAnimationItem = null;
+        let selectedPart = null;
 
         // Funzione per applicare cumulativamente le animazioni precedenti
         function applyPreviousAnimations(index) {
             if (!mixer || index < 0) return;
 
-            // Ferma tutte le animazioni e resetta il mixer
             actions.forEach(action => action.stop());
             mixer.time = 0;
 
-            // Applica tutte le animazioni fino all'indice selezionato (escluso)
             for (let i = 0; i < index; i++) {
                 const action = actions[i];
                 action.reset();
                 action.setLoop(THREE.LoopOnce);
                 action.clampWhenFinished = true;
                 action.play();
-                mixer.update(action.getClip().duration); // Avanza al frame finale
-                // Non fermiamo l'animazione qui, lasciamo che il mixer mantenga lo stato
+                mixer.update(action.getClip().duration);
             }
         }
 
         // Funzione per eseguire una singola animazione con sequenzialità
         function playAnimation(index, listItem) {
             if (mixer && actions[index]) {
-                // Ferma tutte le animazioni
                 actions.forEach(action => action.stop());
-                
-                // Applica tutte le animazioni precedenti
                 applyPreviousAnimations(index);
 
-                // Esegui l'animazione selezionata
                 const action = actions[index];
                 action.setLoop(THREE.LoopOnce);
                 action.clampWhenFinished = true;
                 action.reset();
                 action.play();
 
-                // Aggiorna l'elemento attivo nell'elenco
                 if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                 listItem.classList.add('active');
                 activeAnimationItem = listItem;
@@ -268,7 +331,7 @@
                 isPlayingAll = false;
                 if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                 activeAnimationItem = null;
-                mixer.time = 0; // Resetta il mixer allo stato iniziale
+                mixer.time = 0;
             }
         }
 
@@ -322,6 +385,17 @@
         function highlightPart(part, button) {
             if (!model) return;
 
+            if (selectedPart === part) {
+                model.traverse((child) => {
+                    if (child.isMesh && originalMaterials.has(child)) {
+                        child.material = originalMaterials.get(child);
+                    }
+                });
+                buttonMap.forEach((btn) => btn.classList.remove('selected'));
+                selectedPart = null;
+                return;
+            }
+
             model.traverse((child) => {
                 if (child.isMesh && originalMaterials.has(child)) {
                     child.material = originalMaterials.get(child);
@@ -340,6 +414,7 @@
 
             if (button) {
                 button.classList.add('selected');
+                selectedPart = part;
             }
         }
 
@@ -387,16 +462,14 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
-                // Filtra e ordina le animazioni con nome "Stepn"
                 const stepAnimations = gltf.animations
-                    .filter(clip => /^Step\d+$/.test(clip.name)) // Filtra solo "Step" seguito da numero
+                    .filter(clip => /^Step\d+$/.test(clip.name))
                     .map(clip => ({
                         clip,
-                        number: parseInt(clip.name.match(/\d+$/)[0], 10) // Estrai il numero
+                        number: parseInt(clip.name.match(/\d+$/)[0], 10)
                     }))
-                    .sort((a, b) => a.number - b.number); // Ordina per numero crescente
+                    .sort((a, b) => a.number - b.number);
 
-                // Popola l'array actions e l'elenco
                 stepAnimations.forEach((anim, index) => {
                     const action = mixer.clipAction(anim.clip);
                     action.setLoop(THREE.LoopOnce);
@@ -427,10 +500,9 @@
                     visibilityButton.textContent = '👁️';
                     visibilityButton.addEventListener('click', () => toggleVisibility(child, visibilityButton));
                     bomItem.appendChild(visibilityButton);
-                    bomControls.appendChild(bomItem);
+                    bomList.appendChild(bomItem);
                     buttonMap.set(child, button);
                     visibilityMap.set(child, false);
-                    console.log(`Nome child: ${child.name}`);
                 });
 
                 if (model.children.length === 0) {
@@ -440,6 +512,39 @@
                 document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
                 document.getElementById('pauseButton').addEventListener('click', pauseAnimations);
                 document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
+
+                // Comandi in alto
+                document.getElementById('zoomInButton').addEventListener('click', () => {
+                    camera.position.z -= 0.5;
+                    controls.update();
+                });
+                document.getElementById('zoomOutButton').addEventListener('click', () => {
+                    camera.position.z += 0.5;
+                    controls.update();
+                });
+                document.getElementById('lightSlider').addEventListener('input', (e) => {
+                    const intensity = parseFloat(e.target.value);
+                    ambientLight.intensity = intensity;
+                    directionalLight.intensity = intensity;
+                });
+                document.getElementById('showAllButton').addEventListener('click', () => {
+                    visibilityMap.forEach((isHidden, part) => {
+                        if (isHidden) {
+                            toggleVisibility(part, buttonMap.get(part).nextElementSibling);
+                        }
+                    });
+                });
+
+                // Funzione di ricerca nella distinta base
+                document.getElementById('bomSearch').addEventListener('input', (e) => {
+                    const searchText = e.target.value.toLowerCase();
+                    const bomItems = bomList.getElementsByClassName('bom-item');
+                    for (let item of bomItems) {
+                        const button = item.getElementsByClassName('bom-button')[0];
+                        const text = button.textContent.toLowerCase();
+                        item.style.display = text.includes(searchText) ? '' : 'none';
+                    }
+                });
             },
             function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% caricato');
