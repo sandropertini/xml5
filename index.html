@@ -219,33 +219,43 @@
         let isPlayingAll = false;
         let activeAnimationItem = null;
 
-        // Funzione per impostare lo stato finale delle animazioni precedenti in modo cumulativo
+        // Funzione per applicare cumulativamente le animazioni precedenti
         function setPreviousAnimations(index) {
-            actions.forEach(action => action.stop()); // Ferma tutte le animazioni
-            mixer.time = 0; // Resetta il tempo del mixer
-            
-            // Applica tutte le animazioni precedenti in sequenza
+            if (!mixer || index <= 0) return;
+
+            // Ferma tutte le animazioni e resetta il mixer
+            actions.forEach(action => action.stop());
+            mixer.time = 0;
+
+            // Applica ogni animazione precedente in sequenza
             for (let i = 0; i < index; i++) {
                 const action = actions[i];
                 action.reset();
-                action.time = 0; // Inizia dall'inizio
+                action.setLoop(THREE.LoopOnce);
+                action.clampWhenFinished = true;
                 action.play();
                 mixer.update(action.getClip().duration); // Avanza al frame finale
-                action.stop(); // Ferma l'animazione per evitare interferenze
+                action.stop(); // Ferma per passare alla successiva
             }
         }
 
         // Funzione per eseguire una singola animazione con sequenzialità
         function playAnimation(index, listItem) {
             if (mixer && actions[index]) {
-                setPreviousAnimations(index); // Applica tutte le animazioni precedenti
+                // Ferma tutte le animazioni
+                actions.forEach(action => action.stop());
+                
+                // Applica tutte le animazioni precedenti
+                setPreviousAnimations(index);
 
+                // Esegui l'animazione selezionata
                 const action = actions[index];
                 action.setLoop(THREE.LoopOnce);
                 action.clampWhenFinished = true;
                 action.reset();
                 action.play();
 
+                // Aggiorna l'elemento attivo nell'elenco
                 if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                 listItem.classList.add('active');
                 activeAnimationItem = listItem;
@@ -258,7 +268,7 @@
                 isPlayingAll = false;
                 if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                 activeAnimationItem = null;
-                mixer.time = 0; // Resetta il mixer
+                mixer.time = 0; // Resetta il mixer allo stato iniziale
             }
         }
 
@@ -287,6 +297,8 @@
 
                     const action = actions[currentIndex];
                     action.reset();
+                    action.setLoop(THREE.LoopOnce);
+                    action.clampWhenFinished = true;
                     action.play();
 
                     if (activeAnimationItem) activeAnimationItem.classList.remove('active');
