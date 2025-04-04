@@ -120,7 +120,6 @@
             background: #ff9999;
         }
         
-        /* Stili per la barra di controllo */
         #controlsBar {
             position: absolute;
             bottom: 10px;
@@ -220,10 +219,22 @@
         let isPlayingAll = false;
         let activeAnimationItem = null;
 
-        // Funzioni per animazioni e BOM
+        // Funzione per impostare lo stato finale delle animazioni precedenti
+        function setPreviousAnimations(index) {
+            for (let i = 0; i < index; i++) {
+                const action = actions[i];
+                action.reset();
+                action.time = action.getClip().duration; // Imposta al frame finale
+                mixer.update(0); // Applica immediatamente
+            }
+        }
+
+        // Funzione per eseguire una singola animazione con sequenzialità
         function playAnimation(index, listItem) {
             if (mixer && actions[index]) {
                 actions.forEach(action => action.stop());
+                setPreviousAnimations(index); // Imposta le animazioni precedenti al loro stato finale
+
                 const action = actions[index];
                 action.setLoop(THREE.LoopOnce);
                 action.clampWhenFinished = true;
