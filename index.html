@@ -38,7 +38,7 @@
             padding: 10px;
             max-height: 40vh;
             overflow-y: auto;
-            display: none; /* Inizia chiuso */
+            display: none;
         }
         
         .panel-content.active {
@@ -142,12 +142,15 @@
                 }
             });
 
-            if (part.isMesh) {
-                if (!originalMaterials.has(part)) {
-                    originalMaterials.set(part, part.material.clone());
+            // Evidenzia tutti i mesh all'interno del child selezionato
+            part.traverse((child) => {
+                if (child.isMesh) {
+                    if (!originalMaterials.has(child)) {
+                        originalMaterials.set(child, child.material.clone());
+                    }
+                    child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                 }
-                part.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            }
+            });
         }
 
         // Carica il modello GLB
@@ -175,20 +178,19 @@
                     console.log("Nessuna animazione trovata nel modello.");
                 }
 
-                // Estrai i componenti per la distinta base
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        modelParts.push(child);
-                        const button = document.createElement('button');
-                        const partName = child.name && child.name !== '' ? child.name : `Parte ${modelParts.length}`;
-                        button.textContent = partName;
-                        button.addEventListener('click', () => highlightPart(child));
-                        bomControls.appendChild(button);
-                    }
+                // Estrai i children per la distinta base
+                model.children.forEach((child, index) => {
+                    modelParts.push(child);
+                    const button = document.createElement('button');
+                    const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
+                    button.textContent = partName;
+                    button.addEventListener('click', () => highlightPart(child));
+                    bomControls.appendChild(button);
+                    console.log(`Nome child: ${child.name}`); // Debug per verificare i nomi
                 });
 
-                if (modelParts.length === 0) {
-                    console.log("Nessun componente trovato nel modello.");
+                if (model.children.length === 0) {
+                    console.log("Nessun child trovato nel modello.");
                 }
             },
             function (xhr) {
