@@ -227,15 +227,23 @@
             actions.forEach(action => action.stop());
             mixer.time = 0;
 
-            // Applica ogni animazione precedente in sequenza
+            // Esegui tutte le animazioni precedenti in sequenza
             for (let i = 0; i < index; i++) {
                 const action = actions[i];
                 action.reset();
                 action.setLoop(THREE.LoopOnce);
                 action.clampWhenFinished = true;
                 action.play();
-                mixer.update(action.getClip().duration); // Avanza al frame finale
-                action.stop(); // Ferma per passare alla successiva
+
+                // Forza l'aggiornamento completo dell'animazione
+                const duration = action.getClip().duration;
+                let time = 0;
+                const step = 0.01; // Incremento temporale piccolo per simulare l'esecuzione
+                while (time < duration) {
+                    mixer.update(step);
+                    time += step;
+                }
+                action.stop();
             }
         }
 
