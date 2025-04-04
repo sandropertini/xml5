@@ -53,24 +53,48 @@
             display: block;
         }
         
-        button { 
-            margin: 2px 0; 
+        .bom-item {
+            display: flex;
+            align-items: center;
+            margin: 2px 0;
+        }
+        
+        .bom-button { 
+            flex-grow: 1;
             padding: 5px 10px; 
             cursor: pointer; 
-            width: 100%; 
-            text-align: left;
             border: none;
             background: #fff;
             border-radius: 3px;
+            text-align: left;
         }
         
-        button:hover { 
+        .bom-button:hover { 
             background: #f0f0f0; 
         }
         
-        button.selected {
+        .bom-button.selected {
             background: #ffcccc;
             font-weight: bold;
+        }
+        
+        .visibility-toggle {
+            width: 20px;
+            height: 20px;
+            margin-left: 5px;
+            cursor: pointer;
+            background: #ddd;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .visibility-toggle:hover {
+            background: #ccc;
+        }
+        
+        .visibility-toggle.hidden {
+            background: #ff9999;
         }
     </style>
 </head>
@@ -135,6 +159,7 @@
         const animationControls = document.getElementById('animationControls');
         const bomControls = document.getElementById('bomControls');
         let buttonMap = new Map();
+        let visibilityMap = new Map(); // Mappa per tracciare lo stato di visibilità
 
         // Funzioni per animazioni e BOM
         function playAnimation(index) {
@@ -158,7 +183,6 @@
             model.traverse((child) => {
                 if (child.isMesh && originalMaterials.has(child)) {
                     child.material = originalMaterials.get(child);
-                    child.visible = true;
                 }
             });
             buttonMap.forEach((btn) => btn.classList.remove('selected'));
@@ -177,6 +201,21 @@
             if (button) {
                 button.classList.add('selected');
             }
+        }
+
+        function toggleVisibility(part, toggleButton) {
+            const isHidden = visibilityMap.get(part) || false;
+            const newState = !isHidden;
+            visibilityMap.set(part, newState);
+
+            part.traverse((child) => {
+                if (child.isMesh) {
+                    child.visible = !newState;
+                }
+            });
+
+            toggleButton.classList.toggle('hidden', newState);
+            toggleButton.textContent = newState ? '👁️‍🗨️' : '👁️';
         }
 
         function onMouseClick(event) {
@@ -232,12 +271,29 @@
                 // Estrai i children per la distinta base
                 model.children.forEach((child, index) => {
                     modelParts.push(child);
+                    
+                    // Crea un contenitore per ogni elemento BOM
+                    const bomItem = document.createElement('div');
+                    bomItem.className = 'bom-item';
+
+                    // Pulsante per selezione
                     const button = document.createElement('button');
+                    button.className = 'bom-button';
                     const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
                     button.textContent = partName;
                     button.addEventListener('click', () => highlightPart(child, button));
-                    bomControls.appendChild(button);
+                    bomItem.appendChild(button);
+
+                    // Pulsante per visibilità
+                    const visibilityButton = document.createElement('button');
+                    visibilityButton.className = 'visibility-toggle';
+                    visibilityButton.textContent = '👁️'; // Icona occhio visibile
+                    visibilityButton.addEventListener('click', () => toggleVisibility(child, visibilityButton));
+                    bomItem.appendChild(visibilityButton);
+
+                    bomControls.appendChild(bomItem);
                     buttonMap.set(child, button);
+                    visibilityMap.set(child, false); // Inizialmente visibile
                     console.log(`Nome child: ${child.name}`);
                 });
 
