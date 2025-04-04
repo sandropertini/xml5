@@ -59,6 +59,11 @@
         button:hover { 
             background: #f0f0f0; 
         }
+        
+        button.selected {
+            background: #ffcccc;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -115,8 +120,11 @@
         let actions = [];
         let modelParts = [];
         let model;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
         const animationControls = document.getElementById('animationControls');
         const bomControls = document.getElementById('bomControls');
+        let buttonMap = new Map(); // Mappa tra children e pulsanti
 
         // Funzioni per animazioni e BOM
         function playAnimation(index) {
@@ -133,16 +141,19 @@
         }
 
         let originalMaterials = new Map();
-        function highlightPart(part) {
+        function highlightPart(part, button) {
             if (!model) return;
+
+            // Reset materiali e pulsanti
             model.traverse((child) => {
                 if (child.isMesh && originalMaterials.has(child)) {
                     child.material = originalMaterials.get(child);
                     child.visible = true;
                 }
             });
+            buttonMap.forEach((btn) => btn.classList.remove('selected'));
 
-            // Evidenzia tutti i mesh all'interno del child selezionato
+            // Evidenzia il componente selezionato
             part.traverse((child) => {
                 if (child.isMesh) {
                     if (!originalMaterials.has(child)) {
@@ -151,6 +162,36 @@
                     child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                 }
             });
+
+            // Evidenzia il pulsante corrispondente
+            if (button) {
+                button.classList.add('selected');
+            }
+        }
+
+        function onMouseClick(event) {
+            event.preventDefault();
+
+            // Calcola la posizione del mouse in coordinate normalizzate
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Aggiorna il raycaster
+            raycaster.setFromCamera(mouse, camera);
+
+            // Trova intersezioni con i children del modello
+            const intersects = raycaster.intersectObjects(model.children, true);
+            if (intersects.length > 0) {
+                const intersectedObject = intersects[0].object;
+                let parent = intersectedObject;
+                while (parent.parent && parent.parent !== model) {
+                    parent = parent.parent; // Risali fino al child diretto del modello
+                }
+                if (modelParts.includes(parent)) {
+                    const button = buttonMap.get(parent);
+                    highlightPart(parent, button);
+                }
+            }
         }
 
         // Carica il modello GLB
@@ -184,9 +225,10 @@
                     const button = document.createElement('button');
                     const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
                     button.textContent = partName;
-                    button.addEventListener('click', () => highlightPart(child));
+                    button.addEventListener('click', () => highlightPart(child, button));
                     bomControls.appendChild(button);
-                    console.log(`Nome child: ${child.name}`); // Debug per verificare i nomi
+                    buttonMap.set(child, button); // Associa il child al pulsante
+                    console.log(`Nome child: ${child.name}`);
                 });
 
                 if (model.children.length === 0) {
@@ -211,6 +253,9 @@
                 content.classList.toggle('active');
             });
         });
+
+        // Aggiungi listener per il clic sul modello
+        window.addEventListener('click', onMouseClick, false);
 
         // Clock per aggiornare le animazioni
         const clock = new THREE.Clock();
