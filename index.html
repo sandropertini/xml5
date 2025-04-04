@@ -53,6 +53,30 @@
             display: block;
         }
         
+        /* Stili per l'elenco delle animazioni */
+        .animation-list {
+            list-style: none;
+            padding: 0;
+            margin: 5px 0 0 0;
+        }
+        
+        .animation-list li {
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            background: #fff;
+            margin-bottom: 2px;
+        }
+        
+        .animation-list li:hover {
+            background: #f0f0f0;
+        }
+        
+        .animation-list li.active {
+            background: #cce5ff;
+            font-weight: bold;
+        }
+        
         .bom-item {
             display: flex;
             align-items: center;
@@ -105,7 +129,7 @@
             <div class="panel-content" id="animationControls">
                 <button id="stopButton">Ferma</button>
                 <button id="playAllButton">Esegui tutte</button>
-                <!-- Pulsanti animazioni aggiunti dinamicamente -->
+                <ul class="animation-list" id="animationList"></ul> <!-- Elenco animazioni -->
             </div>
         </div>
     </div>
@@ -158,27 +182,36 @@
         let raycaster = new THREE.Raycaster();
         let mouse = new THREE.Vector2();
         const animationControls = document.getElementById('animationControls');
+        const animationList = document.getElementById('animationList'); // Riferimento all'elenco
         const bomControls = document.getElementById('bomControls');
         let buttonMap = new Map();
         let visibilityMap = new Map();
-        let isPlayingAll = false; // Per tracciare la sequenza
+        let isPlayingAll = false;
+        let activeAnimationItem = null; // Per tracciare l'elemento attivo
 
         // Funzioni per animazioni e BOM
-        function playAnimation(index) {
+        function playAnimation(index, listItem) {
             if (mixer && actions[index]) {
                 actions.forEach(action => action.stop());
                 const action = actions[index];
-                action.setLoop(THREE.LoopOnce); // Esecuzione singola
-                action.clampWhenFinished = true; // Ferma al frame finale
-                action.reset(); // Resetta al frame iniziale
+                action.setLoop(THREE.LoopOnce);
+                action.clampWhenFinished = true;
+                action.reset();
                 action.play();
+
+                // Aggiorna lo stato attivo nell'elenco
+                if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                listItem.classList.add('active');
+                activeAnimationItem = listItem;
             }
         }
 
         function stopAllAnimations() {
             if (mixer) {
                 actions.forEach(action => action.stop());
-                isPlayingAll = false; // Ferma anche la sequenza
+                isPlayingAll = false;
+                if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                activeAnimationItem = null;
             }
         }
 
@@ -186,16 +219,23 @@
             if (mixer && actions.length > 0 && !isPlayingAll) {
                 isPlayingAll = true;
                 let currentIndex = 0;
+                const listItems = animationList.getElementsByTagName('li');
 
                 function playNext() {
                     if (currentIndex >= actions.length || !isPlayingAll) {
                         isPlayingAll = false;
+                        if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                        activeAnimationItem = null;
                         return;
                     }
 
                     const action = actions[currentIndex];
                     action.reset();
                     action.play();
+
+                    if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                    listItems[currentIndex].classList.add('active');
+                    activeAnimationItem = listItems[currentIndex];
 
                     mixer.addEventListener('finished', function onFinished(e) {
                         if (e.action === action) {
@@ -279,15 +319,16 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
+                // Aggiungi elementi all'elenco delle animazioni
                 gltf.animations.forEach((clip, index) => {
                     const action = mixer.clipAction(clip);
-                    action.setLoop(THREE.LoopOnce); // Esecuzione singola
-                    action.clampWhenFinished = true; // Ferma al frame finale
+                    action.setLoop(THREE.LoopOnce);
+                    action.clampWhenFinished = true;
                     actions.push(action);
-                    const button = document.createElement('button');
-                    button.textContent = clip.name || `Animazione ${index}`;
-                    button.addEventListener('click', () => playAnimation(index));
-                    animationControls.appendChild(button);
+                    const listItem = document.createElement('li');
+                    listItem.textContent = clip.name || `Animazione ${index}`;
+                    listItem.addEventListener('click', () => playAnimation(index, listItem));
+                    animationList.appendChild(listItem);
                 });
 
                 if (gltf.animations.length === 0) {
@@ -319,7 +360,6 @@
                     console.log("Nessun child trovato nel modello.");
                 }
 
-                // Aggiungi eventi ai pulsanti
                 document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
                 document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
             },
