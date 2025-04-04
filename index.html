@@ -10,6 +10,7 @@
             overflow: hidden; 
             font-family: 'Roboto', sans-serif; 
             color: #333;
+            transition: background-color 0.3s;
         }
         canvas { width: 100%; height: 100vh; }
         
@@ -27,6 +28,7 @@
             margin-bottom: 10px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: background 0.3s;
         }
         
         .panel-header {
@@ -118,6 +120,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: flex;
             gap: 12px;
+            transition: background 0.3s;
         }
         
         #controlsBar button {
@@ -175,6 +178,7 @@
             display: flex;
             gap: 12px;
             align-items: center;
+            transition: background 0.3s;
         }
 
         #topControls button {
@@ -206,6 +210,22 @@
             border: none !important;
         }
 
+        #viewModeSelect, #themeSelect {
+            height: 40px;
+            padding: 0 10px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #viewModeSelect:hover, #themeSelect:hover {
+            background: linear-gradient(135deg, #5aa0f2, #458acd);
+        }
+
         #lightSliderContainer {
             position: absolute;
             top: 60px;
@@ -217,6 +237,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: none;
             z-index: 101;
+            transition: background 0.3s;
         }
 
         #lightSlider {
@@ -258,6 +279,7 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 14px;
+            transition: border-color 0.3s, background 0.3s;
         }
 
         #selectionRectangle {
@@ -267,6 +289,45 @@
             pointer-events: none;
             z-index: 99;
             display: none;
+        }
+
+        /* Tema scuro */
+        body.dark-theme {
+            background-color: #1a1a1a;
+            color: #ddd;
+        }
+        body.dark-theme .panel {
+            background: rgba(40, 40, 40, 0.95);
+        }
+        body.dark-theme .animation-list li {
+            background: #333;
+            color: #ddd;
+        }
+        body.dark-theme .animation-list li:hover {
+            background: #444;
+        }
+        body.dark-theme .bom-button {
+            background: #333;
+            color: #ddd;
+        }
+        body.dark-theme .bom-button:hover {
+            background: #444;
+        }
+        body.dark-theme .visibility-toggle {
+            background: #555;
+        }
+        body.dark-theme .visibility-toggle:hover {
+            background: #666;
+        }
+        body.dark-theme #controlsBar,
+        body.dark-theme #topControls,
+        body.dark-theme #lightSliderContainer {
+            background: rgba(40, 40, 40, 0.95);
+        }
+        body.dark-theme #bomSearch {
+            background: #333;
+            color: #ddd;
+            border-color: #555;
         }
     </style>
 </head>
@@ -304,6 +365,15 @@
         <button id="zoomOutButton" title="Zoom Out">-</button>
         <button id="toggleLightButton" title="Intensità Luci">💡</button>
         <button id="showAllButton" title="Mostra Tutti">👁️</button>
+        <select id="viewModeSelect" title="Modalità Vista">
+            <option value="solid">Solido</option>
+            <option value="wireframe">Wireframe</option>
+            <option value="transparent">Trasparente</option>
+        </select>
+        <select id="themeSelect" title="Tema">
+            <option value="light">Chiaro</option>
+            <option value="dark">Scuro</option>
+        </select>
     </div>
     <div id="lightSliderContainer">
         <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
@@ -357,11 +427,53 @@
         let activeAnimationItem = null;
         let selectedParts = new Set();
         let originalMaterials = new Map();
+        let labels = [];
 
         // Variabili per il riquadro di selezione
         const selectionRectangle = document.getElementById('selectionRectangle');
         let isDragging = false;
         let startX, startY;
+
+        // Funzione per creare etichette fluttuanti
+        function createLabel(part, name) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = '24px Roboto';
+            const textWidth = context.measureText(name).width;
+            canvas.width = textWidth + 20;
+            canvas.height = 40;
+            context.font = '24px Roboto';
+            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = 'white';
+            context.fillText(name, 10, 30);
+
+            const texture = new THREE.Texture(canvas);
+            texture.needsUpdate = true;
+
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(canvas.width / 100, canvas.height / 100, 1);
+            sprite.visible = false;
+
+            const position = new THREE.Vector3();
+            part.getWorldPosition(position);
+            sprite.position.copy(position);
+            sprite.position.y += 0.5; // Sopra la parte
+            scene.add(sprite);
+
+            return sprite;
+        }
+
+        // Funzione per aggiornare la posizione delle etichette
+        function updateLabels() {
+            labels.forEach(label => {
+                const screenPos = label.position.clone().project(camera);
+                const x = (screenPos.x + 1) * window.innerWidth / 2;
+                const y = (-screenPos.y + 1) * window.innerHeight / 2;
+                label.visible = screenPos.z < 1; // Mostra solo se davanti alla telecamera
+            });
+        }
 
         // Funzione per applicare cumulativamente le animazioni precedenti
         function applyPreviousAnimations(index) {
@@ -380,7 +492,6 @@
             }
         }
 
-        // Funzione per eseguire una singola animazione con sequenzialità
         function playAnimation(index, listItem) {
             if (mixer && actions[index]) {
                 actions.forEach(action => action.stop());
@@ -545,13 +656,34 @@
             }
         }
 
+        // Zoom su selezione con doppio clic
+        function zoomToSelection(event) {
+            if (selectedParts.size === 0) return;
+
+            const boundingBox = new THREE.Box3();
+            selectedParts.forEach(part => {
+                const box = new THREE.Box3().setFromObject(part);
+                boundingBox.union(box);
+            });
+
+            const center = boundingBox.getCenter(new THREE.Vector3());
+            const size = boundingBox.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+
+            camera.position.set(center.x, center.y, center.z + cameraZ);
+            controls.target.copy(center);
+            controls.update();
+        }
+
         // Gestione del riquadro di selezione con Shift
         function startSelection(event) {
             if (!event.shiftKey || !model) return;
 
-            event.preventDefault(); // Impedisce l'inizio del trascinamento dei controlli
+            event.preventDefault();
             isDragging = true;
-            controls.enabled = false; // Disabilita i controlli orbitali
+            controls.enabled = false;
             startX = event.clientX;
             startY = event.clientY;
             selectionRectangle.style.left = `${startX}px`;
@@ -604,8 +736,8 @@
                 });
             });
 
-            controls.enabled = true; // Riabilita i controlli orbitali
-            controls.reset(); // Resetta lo stato interno per evitare salti
+            controls.enabled = true;
+            controls.reset();
         }
 
         // Carica il modello GLB
@@ -646,6 +778,8 @@
                     const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
                     button.textContent = partName;
                     button.addEventListener('click', (e) => highlightPart(child, button, e.ctrlKey));
+                    button.addEventListener('mouseenter', () => labels[index].visible = true);
+                    button.addEventListener('mouseleave', () => labels[index].visible = false);
                     bomItem.appendChild(button);
                     const visibilityButton = document.createElement('button');
                     visibilityButton.className = 'visibility-toggle';
@@ -655,6 +789,10 @@
                     bomList.appendChild(bomItem);
                     buttonMap.set(child, button);
                     visibilityMap.set(child, false);
+
+                    // Crea etichetta fluttuante
+                    const label = createLabel(child, partName);
+                    labels.push(label);
                 });
 
                 document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
@@ -713,6 +851,50 @@
                         hideSelectedParts();
                     }
                 });
+
+                // Modalità di vista
+                const viewModeSelect = document.getElementById('viewModeSelect');
+                viewModeSelect.addEventListener('change', (e) => {
+                    const mode = e.target.value;
+                    model.traverse(child => {
+                        if (child.isMesh) {
+                            if (!originalMaterials.has(child)) {
+                                originalMaterials.set(child, child.material.clone());
+                            }
+                            const material = originalMaterials.get(child);
+                            if (mode === 'wireframe') {
+                                child.material = new THREE.MeshBasicMaterial({
+                                    color: material.color,
+                                    wireframe: true
+                                });
+                            } else if (mode === 'transparent') {
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: material.color,
+                                    transparent: true,
+                                    opacity: 0.5
+                                });
+                            } else {
+                                child.material = material.clone();
+                            }
+                        }
+                    });
+                });
+
+                // Temi visivi
+                const themeSelect = document.getElementById('themeSelect');
+                themeSelect.addEventListener('change', (e) => {
+                    const theme = e.target.value;
+                    if (theme === 'dark') {
+                        document.body.classList.add('dark-theme');
+                        scene.background = new THREE.Color(0x1a1a1a);
+                    } else {
+                        document.body.classList.remove('dark-theme');
+                        scene.background = new THREE.Color(0xdddddd);
+                    }
+                });
+
+                // Doppio clic per zoom
+                window.addEventListener('dblclick', zoomToSelection);
             },
             function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% caricato');
@@ -741,6 +923,7 @@
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             controls.update();
+            updateLabels();
             renderer.render(scene, camera);
         }
         animate();
