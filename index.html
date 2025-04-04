@@ -224,8 +224,8 @@
             for (let i = 0; i < index; i++) {
                 const action = actions[i];
                 action.reset();
-                action.time = action.getClip().duration; // Imposta al frame finale
-                mixer.update(0); // Applica immediatamente
+                action.time = action.getClip().duration;
+                mixer.update(0);
             }
         }
 
@@ -233,7 +233,7 @@
         function playAnimation(index, listItem) {
             if (mixer && actions[index]) {
                 actions.forEach(action => action.stop());
-                setPreviousAnimations(index); // Imposta le animazioni precedenti al loro stato finale
+                setPreviousAnimations(index);
 
                 const action = actions[index];
                 action.setLoop(THREE.LoopOnce);
@@ -369,19 +369,29 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
-                gltf.animations.forEach((clip, index) => {
-                    const action = mixer.clipAction(clip);
+                // Filtra e ordina le animazioni con nome "Step_n"
+                const stepAnimations = gltf.animations
+                    .filter(clip => /^Step_\d+$/.test(clip.name)) // Filtra solo "Step_n"
+                    .map(clip => ({
+                        clip,
+                        number: parseInt(clip.name.match(/\d+$/)[0], 10) // Estrai il numero
+                    }))
+                    .sort((a, b) => a.number - b.number); // Ordina per numero crescente
+
+                // Popola l'array actions e l'elenco
+                stepAnimations.forEach((anim, index) => {
+                    const action = mixer.clipAction(anim.clip);
                     action.setLoop(THREE.LoopOnce);
                     action.clampWhenFinished = true;
                     actions.push(action);
                     const listItem = document.createElement('li');
-                    listItem.textContent = clip.name || `Animazione ${index}`;
+                    listItem.textContent = anim.clip.name;
                     listItem.addEventListener('click', () => playAnimation(index, listItem));
                     animationList.appendChild(listItem);
                 });
 
-                if (gltf.animations.length === 0) {
-                    console.log("Nessuna animazione trovata nel modello.");
+                if (stepAnimations.length === 0) {
+                    console.log("Nessuna animazione 'Step_n' trovata nel modello.");
                 }
 
                 model.children.forEach((child, index) => {
