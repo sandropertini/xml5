@@ -7,10 +7,18 @@
         body { margin: 0; overflow: hidden; }
         canvas { width: 100%; height: 100vh; }
         
-        #controlsContainer { 
+        #animationContainer { 
             position: absolute; 
             top: 10px; 
             left: 10px; 
+            z-index: 100; 
+            width: 250px;
+        }
+        
+        #bomContainer { 
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
             z-index: 100; 
             width: 250px;
         }
@@ -67,7 +75,7 @@
     </style>
 </head>
 <body>
-    <div id="controlsContainer">
+    <div id="animationContainer">
         <div class="panel" id="animationPanel">
             <div class="panel-header">Animazioni</div>
             <div class="panel-content" id="animationControls">
@@ -75,6 +83,8 @@
                 <!-- Pulsanti animazioni aggiunti dinamicamente -->
             </div>
         </div>
+    </div>
+    <div id="bomContainer">
         <div class="panel" id="bomPanel">
             <div class="panel-header">Distinta Base</div>
             <div class="panel-content" id="bomControls">
@@ -124,7 +134,7 @@
         let mouse = new THREE.Vector2();
         const animationControls = document.getElementById('animationControls');
         const bomControls = document.getElementById('bomControls');
-        let buttonMap = new Map(); // Mappa tra children e pulsanti
+        let buttonMap = new Map();
 
         // Funzioni per animazioni e BOM
         function playAnimation(index) {
@@ -185,7 +195,7 @@
                 const intersectedObject = intersects[0].object;
                 let parent = intersectedObject;
                 while (parent.parent && parent.parent !== model) {
-                    parent = parent.parent; // Risali fino al child diretto del modello
+                    parent = parent.parent;
                 }
                 if (modelParts.includes(parent)) {
                     const button = buttonMap.get(parent);
@@ -227,7 +237,7 @@
                     button.textContent = partName;
                     button.addEventListener('click', () => highlightPart(child, button));
                     bomControls.appendChild(button);
-                    buttonMap.set(child, button); // Associa il child al pulsante
+                    buttonMap.set(child, button);
                     console.log(`Nome child: ${child.name}`);
                 });
 
