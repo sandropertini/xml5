@@ -123,7 +123,7 @@
         #controlsBar button {
             width: 48px;
             height: 48px;
-            font-size: 0; /* Rimuove il testo per usare solo SVG */
+            font-size: 0;
             border: none;
             background: linear-gradient(135deg, #4a90e2, #357abd);
             color: white;
@@ -139,7 +139,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0; /* Rimuove padding per centrare SVG */
+            padding: 0;
         }
         
         #controlsBar button:hover {
@@ -159,7 +159,7 @@
         #controlsBar button svg {
             width: 24px;
             height: 24px;
-            fill: white; /* Colore dell'icona */
+            fill: white;
         }
 
         #topControls {
@@ -549,6 +549,7 @@
         function startSelection(event) {
             if (!event.shiftKey || !model) return;
 
+            event.preventDefault(); // Impedisce l'inizio del trascinamento dei controlli
             isDragging = true;
             controls.enabled = false; // Disabilita i controlli orbitali
             startX = event.clientX;
@@ -579,7 +580,6 @@
             if (!isDragging) return;
 
             isDragging = false;
-            controls.enabled = true; // Riabilita i controlli orbitali
             selectionRectangle.style.display = 'none';
 
             const rect = selectionRectangle.getBoundingClientRect();
@@ -603,6 +603,9 @@
                     }
                 });
             });
+
+            controls.enabled = true; // Riabilita i controlli orbitali
+            controls.reset(); // Resetta lo stato interno per evitare salti
         }
 
         // Carica il modello GLB
