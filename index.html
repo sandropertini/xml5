@@ -53,11 +53,10 @@
             display: block;
         }
         
-        /* Stili per l'elenco delle animazioni */
         .animation-list {
             list-style: none;
             padding: 0;
-            margin: 5px 0 0 0;
+            margin: 0;
         }
         
         .animation-list li {
@@ -120,6 +119,36 @@
         .visibility-toggle.hidden {
             background: #ff9999;
         }
+        
+        /* Stili per la barra di controllo */
+        #controlsBar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+        }
+        
+        #controlsBar button {
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        #controlsBar button:hover {
+            background: #e5e5e5;
+        }
     </style>
 </head>
 <body>
@@ -127,9 +156,7 @@
         <div class="panel" id="animationPanel">
             <div class="panel-header">Animazioni</div>
             <div class="panel-content" id="animationControls">
-                <button id="stopButton">Ferma</button>
-                <button id="playAllButton">Esegui tutte</button>
-                <ul class="animation-list" id="animationList"></ul> <!-- Elenco animazioni -->
+                <ul class="animation-list" id="animationList"></ul>
             </div>
         </div>
     </div>
@@ -140,6 +167,11 @@
                 <!-- Pulsanti distinta base aggiunti dinamicamente -->
             </div>
         </div>
+    </div>
+    <div id="controlsBar">
+        <button id="playAllButton" title="Esegui tutte">▶</button>
+        <button id="pauseButton" title="Pausa">⏸</button>
+        <button id="stopButton" title="Ferma">⏹</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
@@ -181,13 +213,12 @@
         let model;
         let raycaster = new THREE.Raycaster();
         let mouse = new THREE.Vector2();
-        const animationControls = document.getElementById('animationControls');
-        const animationList = document.getElementById('animationList'); // Riferimento all'elenco
+        const animationList = document.getElementById('animationList');
         const bomControls = document.getElementById('bomControls');
         let buttonMap = new Map();
         let visibilityMap = new Map();
         let isPlayingAll = false;
-        let activeAnimationItem = null; // Per tracciare l'elemento attivo
+        let activeAnimationItem = null;
 
         // Funzioni per animazioni e BOM
         function playAnimation(index, listItem) {
@@ -199,7 +230,6 @@
                 action.reset();
                 action.play();
 
-                // Aggiorna lo stato attivo nell'elenco
                 if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                 listItem.classList.add('active');
                 activeAnimationItem = listItem;
@@ -212,6 +242,15 @@
                 isPlayingAll = false;
                 if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                 activeAnimationItem = null;
+            }
+        }
+
+        function pauseAnimations() {
+            if (mixer) {
+                actions.forEach(action => {
+                    if (action.isRunning()) action.paused = true;
+                });
+                isPlayingAll = false;
             }
         }
 
@@ -319,7 +358,6 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
-                // Aggiungi elementi all'elenco delle animazioni
                 gltf.animations.forEach((clip, index) => {
                     const action = mixer.clipAction(clip);
                     action.setLoop(THREE.LoopOnce);
@@ -360,8 +398,9 @@
                     console.log("Nessun child trovato nel modello.");
                 }
 
-                document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
                 document.getElementById('playAllButton').addEventListener('click', playAllAnimationsSequentially);
+                document.getElementById('pauseButton').addEventListener('click', pauseAnimations);
+                document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
             },
             function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% caricato');
