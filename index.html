@@ -130,12 +130,20 @@
             border-radius: 50%;
             cursor: pointer;
             transition: transform 0.2s, background 0.3s;
-            outline: none; /* Rimuove il riquadro nero */
+            outline: none; /* Rimuove il bordo di focus */
+            -webkit-appearance: none; /* Uniforma su browser Webkit */
+            -moz-appearance: none; /* Uniforma su Firefox */
+            appearance: none; /* Rimuove stili predefiniti */
         }
         
         #controlsBar button:hover {
             background: linear-gradient(135deg, #5aa0f2, #458acd);
             transform: scale(1.1);
+        }
+
+        #controlsBar button:focus {
+            outline: none; /* Assicura la rimozione del bordo al focus */
+            box-shadow: none; /* Rimuove eventuali ombre di focus */
         }
 
         #topControls {
@@ -164,11 +172,32 @@
             cursor: pointer;
             transition: transform 0.2s, background 0.3s;
             outline: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
 
         #topControls button:hover {
             background: linear-gradient(135deg, #5aa0f2, #458acd);
             transform: scale(1.1);
+        }
+
+        #topControls button:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        #lightSliderContainer {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 101;
         }
 
         #lightSlider {
@@ -239,8 +268,11 @@
     <div id="topControls">
         <button id="zoomInButton" title="Zoom In">+</button>
         <button id="zoomOutButton" title="Zoom Out">-</button>
-        <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1" title="Intensità Luci">
+        <button id="toggleLightButton" title="Intensità Luci">💡</button>
         <button id="showAllButton" title="Mostra Tutti">👁️</button>
+    </div>
+    <div id="lightSliderContainer">
+        <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
@@ -522,11 +554,28 @@
                     camera.position.z += 0.5;
                     controls.update();
                 });
-                document.getElementById('lightSlider').addEventListener('input', (e) => {
+
+                const lightButton = document.getElementById('toggleLightButton');
+                const lightSliderContainer = document.getElementById('lightSliderContainer');
+                const lightSlider = document.getElementById('lightSlider');
+
+                lightButton.addEventListener('click', () => {
+                    lightSliderContainer.style.display = lightSliderContainer.style.display === 'block' ? 'none' : 'block';
+                });
+
+                lightSlider.addEventListener('input', (e) => {
                     const intensity = parseFloat(e.target.value);
                     ambientLight.intensity = intensity;
                     directionalLight.intensity = intensity;
                 });
+
+                // Nascondi lo slider cliccando fuori
+                document.addEventListener('click', (e) => {
+                    if (!lightSliderContainer.contains(e.target) && !lightButton.contains(e.target)) {
+                        lightSliderContainer.style.display = 'none';
+                    }
+                });
+
                 document.getElementById('showAllButton').addEventListener('click', () => {
                     visibilityMap.forEach((isHidden, part) => {
                         if (isHidden) {
