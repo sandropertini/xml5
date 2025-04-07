@@ -193,20 +193,64 @@
 						<para>Rimuovere il Finecorsa dal telaio assieme al proprio cavo.</para>
 					</step2>
 				</step1>
-				<step1>
-					<para>aaaaaaaaaaaaaaaaaaaaaaaah</para>
-					
-				</step1>
-				<step1>
-					<para>Rimozione del direttore></para>
-					
-				</step1>
-				<step1>
-					<para>Rimozione del papa</para>
-					
-				</step1>
 				
-				
+				<step1>
+					<para>Installazione del <xref xidtype="spares" xrefid="spa001"/></para>
+					<step2>
+						<para>Approvvigionare un nuovo <xref xidtype="spares" xrefid="spa001"/>.</para>
+					</step2>
+					<note>
+						<para>Prima di installare un nuovo Finecorsa, accertarsi che sia funzionante.</para>
+					</note>
+					<step2>
+						<para>Inserire il nuovo Finecorsa (<xref xidtype="figure" xrefid="fig002"/> pos. 3) nel suo alloggiamento sul telaio.</para>
+					</step2>
+					<step2>
+						<para>Per mezzo della <xref xidtype="supequip" xrefid="sue001"/>, fissare il Finecorsa al telaio.</para>
+					</step2>
+					<step2>
+						<para>Stendere il cavo del Finecorsa nella canalina (<xref xidtype="figure" xrefid="fig002"/> pos. 2).</para>
+					</step2>
+					<step2>
+						<para>Inserire il cavo del Finecorsa nel passacavo (<xref xidtype="figure" xrefid="fig002"/> pos. 4) del Quadro Elettrico.</para>
+					</step2>
+					<step2>
+						<para>Inserire i conduttori del cavo nei rispettivi morsetti della morsettiera X2 (<xref xidtype="figure" xrefid="fig003"/> pos. 1):<randlist prefix="pf02">
+								<item>1 e 2 per il cavo del sensore anteriore (conduttori 101 e 102);</item>
+								<item>38 e 39 per il cavo del sensoreposteriore (conduttori 111).</item>
+							</randlist>
+						</para>
+					</step2>
+					<step2>
+						<para>Per mezzo del <xref xidtype="supequip" xrefid="sue003"/>, serrare le viti di fissaggio dei conduttori.</para>
+					</step2>
+					<step2>
+						<para>Per mezzo della <xref xidtype="supequip" xrefid="sue004"/>, serrare il dado del passacavo del cavo del Finecorsa interessato.</para>
+					</step2>	
+					
+					<step2>
+						<para>Chiudere il Coperchio con Pulpito Comandi (<xref xidtype="figure" xrefid="fig001"/> pos. 2).</para>
+					</step2>
+					<step2>
+						<para>Con le mani, ruotare i due pomelli (<xref xidtype="figure" xrefid="fig001"/> pos. 1) di chiusura del coperchio.</para>
+					</step2>
+									
+					<step2>
+						<para>Posizionare i nuovi <xref xidtype="supply" xrefid="sup001"/> nella corretta posizione.</para>
+					</step2>
+					<step2>
+						<para>Serrare i <xref xidtype="supply" xrefid="sup001"/> per bloccare il  cavo del Finecorsa.</para>
+					</step2>
+					
+					
+					
+					<step2>
+						<para>Posizionare la canalina che copre il cavo del sensore.</para>
+					</step2>
+					<step2>
+						<para>Per mezzo del <xref xidtype="supequip" xrefid="sue005"/>, avvitare le viti di fissaggio (<xref xidtype="figure" xrefid="fig002"/> pos. 1) della canalina .</para>
+					</step2>
+				</step1>
 				
 				<figure id="fig002">
 					<title>T-Mover - Canaline, Quadro Elettrico e Finecorsa</title>
