@@ -408,11 +408,17 @@
         function updateWidths(currentX) {
             const containerWidth = container.offsetWidth;
             const deltaX = currentX - startX;
-            const newViewerWidthPx = initialViewerWidthPx + deltaX;
+            let newViewerWidthPx = initialViewerWidthPx + deltaX;
 
-            let newViewerWidthPercent = (newViewerWidthPx / containerWidth) * 100;
-            newViewerWidthPercent = Math.max(10, Math.min(90, newViewerWidthPercent));
+            // Limiti in pixel basati sulle percentuali
+            const minWidthPx = containerWidth * 0.1; // 10%
+            const maxWidthPx = containerWidth * 0.9; // 90%
+            newViewerWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newViewerWidthPx));
 
+            // Converti in percentuale
+            const newViewerWidthPercent = (newViewerWidthPx / containerWidth) * 100;
+
+            // Aggiorna le larghezze
             viewer.style.width = `${newViewerWidthPercent}%`;
             procedure.style.width = `${100 - newViewerWidthPercent}%`;
         }
