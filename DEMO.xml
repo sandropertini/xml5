@@ -149,6 +149,12 @@
 			</prelreqs>
 			<mainfunc>
 				<step1>
+					<para>Rimozione papa></para>
+				</step1>
+				<step1>
+					<para>Rimozione direttore></para>
+				</step1>
+					<step1>
 					<para>Rimozione del <xref xidtype="spares" xrefid="spa001"/></para>
 					<step2>
 						<para>Per mezzo del <xref xidtype="supequip" xrefid="sue005"/>, svitare le viti di fissaggio (<xref xidtype="figure" xrefid="fig002"/> pos. 1) della canalina (<xref xidtype="figure" xrefid="fig002"/> pos. 2) che copre il cavo del Finecorsa (<xref xidtype="figure" xrefid="fig002"/> pos. 3).</para>
