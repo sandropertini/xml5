@@ -19,14 +19,33 @@
             left: 10px; 
             z-index: 100; 
             width: 250px;
-            /* 'top' sarà gestito dinamicamente via JS */
+            transition: width 0.3s ease, left 0.3s ease;
         }
         #bomContainer { 
             position: absolute; 
             left: 10px; 
             z-index: 100; 
             width: 250px;
-            /* 'top' sarà gestito dinamicamente via JS */
+            transition: width 0.3s ease, left 0.3s ease;
+        }
+        
+        #animationContainer.collapsed, #bomContainer.collapsed {
+            width: 40px;
+            left: 0;
+        }
+        
+        #animationContainer.collapsed .panel-content,
+        #bomContainer.collapsed .panel-content {
+            display: none;
+        }
+        
+        #animationContainer.collapsed .panel-header,
+        #bomContainer.collapsed .panel-header {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            padding: 12px 8px;
+            border-radius: 8px 0 0 8px;
+            height: 100px;
         }
         
         .panel {
@@ -46,6 +65,8 @@
             font-weight: 700;
             user-select: none;
             transition: background 0.3s;
+            position: relative;
+            overflow: hidden;
         }
         
         .panel-header:hover {
@@ -56,10 +77,8 @@
             padding: 12px;
             max-height: 40vh;
             overflow-y: auto;
-            display: none;
+            display: block;
         }
-        
-        .panel-content.active { display: block; }
         
         .animation-list {
             list-style: none;
@@ -116,10 +135,10 @@
         
         #controlsBar {
             position: absolute;
-            top: 10px; /* Fissato in alto */
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 101; /* Sopra i pannelli */
+            z-index: 101;
             background: rgba(255, 255, 255, 0.95);
             padding: 8px;
             border-radius: 50px;
@@ -246,7 +265,7 @@
 
         #lightSliderContainer {
             position: absolute;
-            top: 70px; /* Spostato sotto il controlsBar */
+            top: 70px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
@@ -377,6 +396,7 @@
             <option value="solid" title="Solido">🟥</option>
             <option value="wireframe" title="Wireframe">🕸️</option>
             <option value="transparent" title="Trasparente">🔍</option>
+            <option value="reset" title="Reset">🔄</option>
         </select>
         <select id="themeSelect" title="Tema">
             <option value="light" title="Chiaro">☀️</option>
@@ -410,8 +430,7 @@
         const ambientLight = new THREE.HemisphereLight(0xffffff, 0x444444);
         ambientLight.position.set(0, 20, 0);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff);
-        directionalLight.position.set(0, 20, 10);
+        const directionalLight = new THREE.DirectionalLight(0xffffff AscendingLight.position.set(0, 20, 10);
         scene.add(directionalLight);
 
         let mixer;
@@ -429,20 +448,21 @@
         let selectedParts = new Set();
         let originalMaterials = new Map();
 
-        // Funzione per aggiornare dinamicamente la posizione dei pannelli
         function updatePanelPositions() {
             const controlsBar = document.getElementById('controlsBar');
             const animationContainer = document.getElementById('animationContainer');
             const bomContainer = document.getElementById('bomContainer');
             const margin = 10;
 
-            // Posiziona animationContainer sotto controlsBar
             const controlsBarHeight = controlsBar.offsetHeight;
-            animationContainer.style.top = `${controlsBarHeight + margin + 10}px`; // 10px è il top iniziale di controlsBar
+            const animationTop = controlsBarHeight + margin + 10;
 
-            // Posiziona bomContainer sotto animationContainer
-            const animationHeight = animationContainer.offsetHeight;
-            bomContainer.style.top = `${controlsBarHeight + animationHeight + (2 * margin) + 10}px`;
+            animationContainer.style.top = `${animationTop}px`;
+            if (!animationContainer.classList.contains('collapsed')) {
+                bomContainer.style.top = `${animationTop + animationContainer.offsetHeight + margin}px`;
+            } else {
+                bomContainer.style.top = `${animationTop + 40 + margin}px`;
+            }
         }
 
         function applyPreviousAnimations(index) {
@@ -777,27 +797,49 @@
                 const viewModeSelect = document.getElementById('viewModeSelect');
                 viewModeSelect.addEventListener('change', (e) => {
                     const mode = e.target.value;
-                    model.traverse(child => {
-                        if (child.isMesh) {
-                            if (!originalMaterials.has(child)) {
-                                originalMaterials.set(child, child.material.clone());
+                    const targetObjects = selectedParts.size > 0 ? Array.from(selectedParts) : model.children;
+
+                    if (mode === 'reset') {
+                        model.traverse(child => {
+                            if (child.isMesh && originalMaterials.has(child)) {
+                                child.material = originalMaterials.get(child).clone();
+                                child.visible = true;
                             }
-                            const material = originalMaterials.get(child);
-                            if (mode === 'wireframe') {
-                                child.material = new THREE.MeshBasicMaterial({
-                                    color: material.color,
-                                    wireframe: true
-                                });
-                            } else if (mode === 'transparent') {
-                                child.material = new THREE.MeshStandardMaterial({
-                                    color: material.color,
-                                    transparent: true,
-                                    opacity: 0.5
-                                });
-                            } else {
-                                child.material = material.clone();
+                        });
+                        selectedParts.clear();
+                        buttonMap.forEach((button) => button.classList.remove('selected'));
+                        visibilityMap.forEach((_, part) => visibilityMap.set(part, false));
+                        buttonMap.forEach((button, part) => {
+                            const toggleButton = button.nextElementSibling;
+                            toggleButton.classList.remove('hidden');
+                            toggleButton.textContent = '👁️';
+                        });
+                        return;
+                    }
+
+                    targetObjects.forEach(part => {
+                        part.traverse(child => {
+                            if (child.isMesh) {
+                                if (!originalMaterials.has(child)) {
+                                    originalMaterials.set(child, child.material.clone());
+                                }
+                                const material = originalMaterials.get(child);
+                                if (mode === 'wireframe') {
+                                    child.material = new THREE.MeshBasicMaterial({
+                                        color: material.color || 0x000000,
+                                        wireframe: true
+                                    });
+                                } else if (mode === 'transparent') {
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: material.color || 0x000000,
+                                        transparent: true,
+                                        opacity: 0.5
+                                    });
+                                } else if (mode === 'solid') {
+                                    child.material = material.clone();
+                                }
                             }
-                        }
+                        });
                     });
                 });
 
@@ -815,7 +857,6 @@
 
                 window.addEventListener('dblclick', zoomToSelection);
 
-                // Aggiorna la posizione dei pannelli dopo il caricamento
                 updatePanelPositions();
             },
             function (xhr) {
@@ -826,12 +867,11 @@
             }
         );
 
-        // Gestione dinamica dei pannelli collassabili
         document.querySelectorAll('.panel-header').forEach(header => {
             header.addEventListener('click', () => {
-                const content = header.nextElementSibling;
-                content.classList.toggle('active');
-                setTimeout(updatePanelPositions, 0); // Timeout per garantire il rendering
+                const container = header.parentElement.parentElement;
+                container.classList.toggle('collapsed');
+                setTimeout(updatePanelPositions, 300);
             });
         });
 
@@ -859,7 +899,7 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            updatePanelPositions(); // Aggiorna posizione al ridimensionamento
+            updatePanelPositions();
         });
     </script>
 </body>
