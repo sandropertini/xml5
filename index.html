@@ -206,42 +206,38 @@
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
 
-        let isResizing = false;
         let startX;
         let startViewerWidth;
         let startProcedureWidth;
 
-        resizer.addEventListener('mousedown', (e) => {
-            isResizing = true;
+        function startResize(e) {
             startX = e.clientX;
             startViewerWidth = viewer.offsetWidth;
             startProcedureWidth = procedure.offsetWidth;
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
             e.preventDefault(); // Impedisce la selezione del testo
-        });
+        }
 
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-
+        function resize(e) {
             const deltaX = e.clientX - startX;
             let newViewerWidth = startViewerWidth + deltaX;
             let newProcedureWidth = startProcedureWidth - deltaX;
 
             const containerWidth = container.offsetWidth;
-            // Limiti per garantire che nessuna sezione sia più piccola di 100px
             newViewerWidth = Math.max(100, Math.min(newViewerWidth, containerWidth - 100));
             newProcedureWidth = containerWidth - newViewerWidth;
 
             viewer.style.width = `${newViewerWidth}px`;
             procedure.style.width = `${newProcedureWidth}px`;
-        });
+        }
 
-        document.addEventListener('mouseup', () => {
-            isResizing = false;
-        });
+        function stopResize() {
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
 
-        document.addEventListener('mouseleave', () => {
-            isResizing = false; // Ferma il ridimensionamento se il mouse esce dalla finestra
-        });
+        resizer.addEventListener('mousedown', startResize);
 
         // Imposta le larghezze iniziali in pixel
         window.addEventListener('load', () => {
