@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE dmodule [<!ENTITY % ISOEntities PUBLIC "ISO 8879-1986//ENTITIES ISO Character Entities 20030531//EN//XML" ".\ent\ISOEntities"> %ISOEntities;<!ENTITY ICN-THSAAAAAAAAAAA-AAAA-HC6302000-F-A2309-00005-A-01-1_IT "ICN-THSAAAAAAAAAAA-AAAA-HC6302000-F-A2309-00005-A-01-1_IT.jpg">]><dmodule xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="./XMLSCHEMA/dm/procedSchema.xsd">
+	<?Pub Caret1?>
+	<idstatus>
+		<dmaddres>
+			<dmc>
+				<avee>
+					<modelic>THSAAAAAAAAAAA</modelic>
+					<sdc>AAAA</sdc>
+					<chapnum>HC6</chapnum>
+					<section>3</section>
+					<subsect>0</subsect>
+					<subject>2000</subject>
+					<discode>04</discode>
+					<discodev>AAA</discodev>
+					<incode>281</incode>
+					<incodev>A</incodev>
+					<itemloc>A</itemloc>
+				</avee>
+			</dmc>
+			<dmtitle>
+				<techname>Operazioni di Manutenzione dello Stowing Unit</techname>
+				<infoname>Lubrificazione delle Guide Bosch Rexroth della Struttura</infoname>
+			</dmtitle>
+			<issno issno="001" type="new"/>
+			<issdate day="30" month="04" year="2014"/>
+			<language country="IT" language="it"/>
+		</dmaddres>
+		<status>
+			<security class="01"/>
+			<rpc>A3121</rpc>
+			<orig>A2309</orig>
+			<applic>
+				<type>THSAAAAAAAAAAA</type>
+				<model model="FREMM">
+					<version version="ALL"/>
+				</model>
+			</applic>
+			<qa><firstver type="tabtop"/><secver type="tabtop"/></qa>
+			<sbc>75211_S020101_00_P#PMONAAA</sbc>
+			<sbc>75211_S020102_00_P#PMONAAB</sbc>
+			<rfu>Emissione</rfu>
+		</status>
+	</idstatus>
+	<content>
+		<refs>
+			<norefs/>
+		</refs>
+		<proced>
+			<prelreqs>
+				<pmd>
+					<opndurn closeup="" prelreqs="" proced="3,00"/>
+				</pmd>
+				<reqconds>
+					<reqcond>Sistema nelle condizioni riportate al para <refdm>
+							<avee>
+								<modelic>THSAAAAAAAAAAA</modelic>
+								<sdc>AAAA</sdc>
+								<chapnum>HC6</chapnum>
+								<section>3</section>
+								<subsect>0</subsect>
+								<subject>0000</subject>
+								<discode>02</discode>
+								<discodev>AAA</discodev>
+								<incode>012</incode>
+								<incodev>A</incodev>
+								<itemloc>A</itemloc>
+							</avee>
+						</refdm>
+					</reqcond>
+					
+				</reqconds>
+				<reqpers>
+					<person man="1"/>
+					<perscat category="EMEM"/>
+					<perskill skill="sk01"/>
+				</reqpers>
+				<supequip>
+					<nosupeq/>
+				</supequip>
+				<supplies>
+					<supplyli>
+						<supply id="sup001">
+							<nomen>Aeroshell Grease 7 (Grasso Multi-Purpose tipo Shell AeroShell Grease 7 o equiv.)</nomen>
+							<identno>
+								<mfc>A7230</mfc>
+								<pnr>Aeroshell Grease 7</pnr>
+							</identno>
+							<qty>0,1 cc</qty>
+						</supply>
+						<supply id="sup002">
+							<nomen>Panno morbido</nomen>
+							<identno>
+								<mfc>A2666</mfc>
+								<pnr>Panno</pnr>
+							</identno>
+							<qty>1</qty>
+						</supply>
+						<supply id="sup003">
+							<nomen>Guanti Keep Safe in Nitrile</nomen>
+							<identno>
+								<mfc>U2419</mfc>
+								<pnr>304297</pnr>
+							</identno>
+							<qty>1</qty>
+						</supply>
+					</supplyli>
+				</supplies>
+				<spares>
+					<nospares/>
+				</spares>
+				<safety>
+					<safecond>
+						<warning>
+							<para>
+								Attenersi alle precauzioni di sicurezza generali riportate al para <refdm>
+									<avee>
+										<modelic>THSAAAAAAAAAAA</modelic>
+										<sdc>AAAA</sdc>
+										<chapnum>HC6</chapnum>
+										<section>3</section>
+										<subsect>0</subsect>
+										<subject>0000</subject>
+										<discode>01</discode>
+										<discodev>AAA</discodev>
+										<incode>012</incode>
+										<incodev>A</incodev>
+										<itemloc>A</itemloc>
+									</avee>
+								</refdm>
+							</para>
+						</warning>
+						<warning>
+							<para>Indossare i <xref xidtype="supply" xrefid="sup003"/>.</para>
+						</warning>
+					</safecond>
+				</safety>
+			</prelreqs>
+			<mainfunc>
+				<step1>
+				<note>
+					<para>La procedura sottoriportata si riferisce alla lubrificazione di una sola guida; ripetere la procedura per tutte le guide da lubrificare.</para>
+				</note>
+					<para>Con il <xref xidtype="supply" xrefid="sup002"/>, rimuovere il grasso da ogni guida della Stowing Unit.</para>
+				</step1>
+				<step1>
+					<para>Utilizzando gli idonei punti di ingrassaggio (<xref xidtype="figure" xrefid="fig001"/> pos. 1), lubrificare, con <xref xidtype="supply" xrefid="sup001"/>, ogni guida della Stowing Unit.</para>
+					<caution>
+						<para>Se per qualunque motivo le guide vengono bagnate, asciugare immediatamente le guide stesse e ripetere la lubrificazione.</para>
+					</caution>
+				</step1>
+				<figure id="fig001">
+					<title>Stowing Unit - Guide Bosch Rexroth</title>
+					<graphic boardno="ICN-THSAAAAAAAAAAA-AAAA-HC6302000-F-A2309-00005-A-01-1_IT" reproscl="50" xlink:href="ICN-THSAAAAAAAAAAA-AAAA-HC6302000-F-A2309-00005-A-01-1_IT.jpg"/>
+				</figure>
+			</mainfunc>
+			<closeup>
+				<noclose/>
+			</closeup>
+		</proced>
+	</content>
+</dmodule><?Pub *0000002135?>
