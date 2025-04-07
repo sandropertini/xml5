@@ -6,7 +6,6 @@
     <style>
         body { 
             margin: 0; 
-            display: flex; 
             font-family: Arial, sans-serif; 
             height: 100vh; /* Altezza totale della viewport */
             overflow: hidden; /* Impedisce lo scroll del body */
@@ -15,33 +14,29 @@
             display: flex;
             width: 100%;
             height: 100%;
-            position: relative;
         }
         #viewer { 
-            flex: 1; /* Si espande per occupare lo spazio disponibile */
+            width: 70%; /* Larghezza iniziale */
             height: 100%; 
             border: none; 
             overflow: auto; /* Scroll indipendente */
             min-width: 100px; /* Larghezza minima */
-            max-width: 90vw; /* Larghezza massima */
         }
         #resizer {
             width: 5px;
             height: 100%;
             background: #ccc;
             cursor: col-resize; /* Cursore per ridimensionamento orizzontale */
-            position: absolute;
-            z-index: 1;
+            flex-shrink: 0; /* Impedisce al resizer di ridursi */
         }
         #procedure { 
-            flex: 0 0 30%; /* Larghezza iniziale 30% */
+            width: 30%; /* Larghezza iniziale */
             height: 100%; 
             padding: 20px; 
             overflow-y: auto; /* Scroll verticale isolato */
             background: #fff; 
             border-left: 2px solid #ccc; 
             min-width: 100px; /* Larghezza minima */
-            max-width: 90vw; /* Larghezza massima */
             box-sizing: border-box;
         }
         #procedure h2 { 
@@ -203,13 +198,11 @@
             });
 
         // Logica per il ridimensionamento orizzontale
+        const container = document.getElementById('container');
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
         let isResizing = false;
-
-        // Posiziona il resizer tra viewer e procedure
-        resizer.style.left = `${viewer.offsetWidth}px`;
 
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
@@ -219,19 +212,40 @@
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
 
-            const containerWidth = container.offsetWidth;
-            const newViewerWidth = e.clientX;
-            const newProcedureWidth = containerWidth - newViewerWidth - resizer.offsetWidth;
+            const containerRect = container.getBoundingClientRect();
+            const newViewerWidth = e.clientX - containerRect.left;
+            const newProcedureWidth = containerRect.width - newViewerWidth - resizer.offsetWidth;
 
-            if (newViewerWidth >= 100 && newProcedureWidth >= 100) { // Limiti minimi
+            // Applica le nuove larghezze solo se rispettano i limiti minimi
+            if (newViewerWidth >= 100 && newProcedureWidth >= 100) {
                 viewer.style.width = `${newViewerWidth}px`;
                 procedure.style.width = `${newProcedureWidth}px`;
-                resizer.style.left = `${newViewerWidth}px`;
             }
         });
 
         document.addEventListener('mouseup', () => {
             isResizing = false;
+        });
+
+        // Imposta le larghezze iniziali in pixel per coerenza
+        window.addEventListener('load', () => {
+            const containerWidth = container.offsetWidth;
+            viewer.style.width = `${containerWidth * 0.7}px`;
+            procedure.style.width = `${containerWidth * 0.3}px`;
+        });
+
+        // Aggiorna le larghezze al ridimensionamento della finestra
+        window.addEventListener('resize', () => {
+            const containerWidth = container.offsetWidth;
+            const viewerWidth = parseFloat(viewer.style.width);
+            const procedureWidth = parseFloat(procedure.style.width);
+            const totalWidth = viewerWidth + procedureWidth + resizer.offsetWidth;
+
+            if (totalWidth !== containerWidth) {
+                const scale = containerWidth / totalWidth;
+                viewer.style.width = `${viewerWidth * scale}px`;
+                procedure.style.width = `${procedureWidth * scale}px`;
+            }
         });
     </script>
 </body>
