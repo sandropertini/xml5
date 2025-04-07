@@ -214,7 +214,7 @@
 
             const containerRect = container.getBoundingClientRect();
             const newViewerWidth = e.clientX - containerRect.left;
-            const newProcedureWidth = containerRect.width - newViewerWidth - resizer.offsetWidth;
+            const newProcedureWidth = containerRect.right - e.clientX;
 
             // Applica le nuove larghezze solo se rispettano i limiti minimi
             if (newViewerWidth >= 100 && newProcedureWidth >= 100) {
@@ -234,18 +234,17 @@
             procedure.style.width = `${containerWidth * 0.3}px`;
         });
 
-        // Aggiorna le larghezze al ridimensionamento della finestra
+        // Aggiorna le larghezze proporzionalmente al ridimensionamento della finestra
         window.addEventListener('resize', () => {
             const containerWidth = container.offsetWidth;
-            const viewerWidth = parseFloat(viewer.style.width);
-            const procedureWidth = parseFloat(procedure.style.width);
-            const totalWidth = viewerWidth + procedureWidth + resizer.offsetWidth;
+            const currentViewerWidth = parseFloat(viewer.style.width) || containerWidth * 0.7;
+            const currentProcedureWidth = parseFloat(procedure.style.width) || containerWidth * 0.3;
+            const totalCurrentWidth = currentViewerWidth + currentProcedureWidth;
 
-            if (totalWidth !== containerWidth) {
-                const scale = containerWidth / totalWidth;
-                viewer.style.width = `${viewerWidth * scale}px`;
-                procedure.style.width = `${procedureWidth * scale}px`;
-            }
+            // Scala proporzionalmente per adattarsi alla nuova larghezza del contenitore
+            const scale = containerWidth / totalCurrentWidth;
+            viewer.style.width = `${currentViewerWidth * scale}px`;
+            procedure.style.width = `${currentProcedureWidth * scale}px`;
         });
     </script>
 </body>
