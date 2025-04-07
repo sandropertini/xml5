@@ -9,10 +9,10 @@
             padding: 0; 
             height: 100vh; 
             overflow: hidden; 
-            background: linear-gradient(135deg, #f5f7fa, #c3cfe2); /* Gradiente di sfondo */
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
         }
         body { 
-            font-family: 'Segoe UI', Arial, sans-serif; /* Font moderno */
+            font-family: 'Segoe UI', Arial, sans-serif; 
             display: flex; 
             flex-direction: column; 
         }
@@ -21,8 +21,8 @@
             width: 100%;
             height: 100%;
             user-select: none;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Ombra leggera */
-            border-radius: 8px; /* Bordi arrotondati */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
             overflow: hidden;
         }
         #viewer { 
@@ -35,30 +35,25 @@
             transition: width 0.3s ease; 
         }
         #resizer {
-            width: 8px; /* Più spesso per visibilità */
+            width: 5px;
             height: 100%;
-            background: linear-gradient(to bottom, #007bff, #00c4ff); /* Gradiente blu */
-            cursor: col-resize; /* Cursore più specifico */
+            background: #007bff;
+            cursor: pointer;
             position: relative;
-            transition: width 0.2s ease;
-        }
-        #resizer:hover {
-            width: 12px; /* Espansione al passaggio del mouse */
         }
         #resizer:hover::after {
             content: "Trascina per ridimensionare";
             position: absolute;
             top: 50%;
-            left: 15px;
+            left: 10px;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.85);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
             font-size: 0.9em;
             white-space: nowrap;
             pointer-events: none;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         #procedure { 
             width: 70%; 
@@ -74,13 +69,13 @@
         #procedure h2 { 
             font-size: 1.8em; 
             margin-bottom: 15px; 
-            color: #2c3e50; /* Blu scuro elegante */
+            color: #2c3e50;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
         }
         #procedure p#description { 
             font-style: italic; 
             margin-bottom: 20px; 
-            color: #7f8c8d; /* Grigio morbido */
+            color: #7f8c8d;
         }
         details { 
             margin: 15px 0; 
@@ -105,14 +100,14 @@
         }
         #procedure ul { 
             padding-left: 45px; 
-            list-style-type: square; /* Stile moderno per liste */
+            list-style-type: square;
         }
         #procedure li { 
             margin: 12px 0; 
             color: #2d3436;
         }
         #error { 
-            color: #e74c3c; /* Rosso vivace */
+            color: #e74c3c; 
             font-weight: bold;
         }
         .note { 
@@ -146,7 +141,12 @@
         }
         .step:hover { 
             background: #dfe6e9; 
-            transform: translateX(5px); /* Effetto spostamento */
+            transform: translateX(5px);
+        }
+        .step.active {
+            background: #007bff;
+            color: white;
+            transform: translateX(5px);
         }
         .figure { 
             margin: 25px 0; 
@@ -288,18 +288,22 @@
                     div.className = className;
                     div.innerHTML = prefix ? `${prefix} ${text}` : text;
                     if (className === 'step') {
+                        const stepNumber = prefix.replace('.', '').trim();
+                        div.dataset.stepNumber = stepNumber; // Salva il numero del passo
                         div.addEventListener('click', () => {
-                            const stepNumber = prefix.replace('.', '').trim();
                             const animationName = `Step${stepNumber}`;
                             if (iframeReady) {
                                 iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
                                 console.log(`Invio messaggio: ${animationName}`);
+                                document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+                                div.classList.add('active');
                             } else {
                                 console.log('Iframe non ancora pronto');
                             }
                         });
                     }
                     container.appendChild(div);
+                    return div;
                 }
 
                 const warnings = proced.getElementsByTagName('warning');
@@ -374,6 +378,22 @@
                 document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
             });
 
+        // Listener per messaggi dall'iframe
+        window.addEventListener('message', (e) => {
+            if (e.data.type === 'animationSelected') {
+                const animationName = e.data.name;
+                const stepNumber = animationName.replace('Step', '');
+                const steps = document.querySelectorAll('.step');
+                steps.forEach(step => {
+                    step.classList.remove('active');
+                    if (step.dataset.stepNumber === stepNumber) {
+                        step.classList.add('active');
+                        step.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+        });
+
         // Logica del trascinamento per il resize
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
@@ -381,22 +401,18 @@
 
         // Variabili per il trascinamento
         let isDragging = false;
-        let startX; // Posizione iniziale del mouse
-        let initialViewerWidth; // Larghezza iniziale del viewer in percentuale
+        let startX;
+        let initialViewerWidth;
 
         // Funzione per calcolare la larghezza in percentuale basata sui pixel
         function updateWidths(currentX) {
-            const deltaX = currentX - startX; // Differenza in pixel
-            const pixelsPerPercent = 10; // Ogni 10 pixel = 1%
-            const percentChange = deltaX / pixelsPerPercent; // Cambio continuo in percentuale
+            const deltaX = currentX - startX;
+            const pixelsPerPercent = 15; // Ogni 15 pixel = 2%
+            const percentChange = Math.round(deltaX / pixelsPerPercent) * 2;
 
-            // Calcola la nuova larghezza del viewer
             let newViewerWidth = initialViewerWidth + percentChange;
-            
-            // Limita i valori tra 10% e 90%
             newViewerWidth = Math.max(10, Math.min(90, newViewerWidth));
 
-            // Aggiorna le larghezze
             viewer.style.width = `${newViewerWidth}%`;
             procedure.style.width = `${100 - newViewerWidth}%`;
         }
@@ -404,9 +420,9 @@
         // Evento al clic sul resizer
         resizer.addEventListener('mousedown', (e) => {
             isDragging = true;
-            startX = e.clientX; // Posizione iniziale del mouse
-            initialViewerWidth = parseFloat(viewer.style.width) || 30; // Larghezza iniziale (default 30%)
-            e.preventDefault(); // Evita la selezione del testo
+            startX = e.clientX;
+            initialViewerWidth = parseFloat(viewer.style.width) || 30;
+            e.preventDefault();
         });
 
         // Evento di movimento del mouse
