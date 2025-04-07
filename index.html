@@ -38,61 +38,55 @@
     </style>
 </head>
 <body>
-    <!-- Iframe per richiamare index.html -->
-    <iframe id="viewer" src="index.html"></iframe>
+    <!-- Iframe per richiamare 3D.html -->
+    <iframe id="viewer" src="3D.html"></iframe>
 
     <!-- Sezione per la procedura testuale -->
     <div id="procedure">
         <h2>Procedura di Smontaggio</h2>
         <ol id="steps"></ol>
-        <div id="error"></div>
+        <p id="error"></p>
     </div>
 
     <!-- Script per caricare e parsare DEMO.xml -->
     <script>
-        // Funzione per caricare e mostrare i passaggi
-        function loadProcedure() {
-            fetch('DEMO.xml')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('File XML non trovato o errore di caricamento: ' + response.status);
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(data, 'text/xml');
-                    
-                    // Verifica errori di parsing XML
-                    if (xmlDoc.documentElement.nodeName === 'parsererror') {
-                        throw new Error('Errore nel parsing del file XML');
-                    }
+        fetch('DEMO.xml')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('File XML non trovato o non accessibile');
+                }
+                return response.text();
+            })
+            .then(data => {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data, 'text/xml');
+                
+                // Estrazione dei passaggi procedurali considerando la struttura annidata
+                const mainProcedure = xmlDoc.getElementsByTagName('mainProcedure')[0];
+                if (!mainProcedure) {
+                    document.getElementById('error').textContent = 'Struttura XML non valida: mainProcedure non trovato';
+                    return;
+                }
+                const steps = mainProcedure.getElementsByTagName('proceduralStep');
+                const stepList = document.getElementById('steps');
+                
+                if (steps.length === 0) {
+                    document.getElementById('error').textContent = 'Nessun passaggio trovato nel file XML';
+                    return;
+                }
 
-                    // Estrazione dei proceduralStep annidati
-                    const steps = xmlDoc.querySelectorAll('mainProcedure proceduralStep');
-                    const stepList = document.getElementById('steps');
-                    
-                    if (steps.length === 0) {
-                        document.getElementById('error').textContent = 'Nessun passaggio trovato nel file XML';
-                        return;
-                    }
-
-                    steps.forEach((step, index) => {
-                        const para = step.getElementsByTagName('para')[0];
-                        const stepText = para ? para.textContent : 'Passaggio non disponibile';
-                        const li = document.createElement('li');
-                        li.textContent = `${index + 1}. ${stepText}`;
-                        stepList.appendChild(li);
-                    });
-                })
-                .catch(error => {
-                    document.getElementById('error').textContent = 'Errore: ' + error.message;
-                    console.error(error);
-                });
-        }
-
-        // Esegui al caricamento della pagina
-        window.onload = loadProcedure;
+                for (let i = 0; i < steps.length; i++) {
+                    const para = steps[i].getElementsByTagName('para')[0];
+                    const stepText = para ? para.textContent : 'Passaggio non disponibile';
+                    const li = document.createElement('li');
+                    li.textContent = `${i + 1}. ${stepText}`;
+                    stepList.appendChild(li);
+                }
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
+            });
     </script>
 </body>
 </html>
