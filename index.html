@@ -428,6 +428,7 @@
             isDragging = true;
             startX = e.clientX;
             initialViewerWidthPx = viewer.offsetWidth;
+            viewer.style.pointerEvents = 'none'; // Disabilita interattività dell'iframe
             e.preventDefault();
         });
 
@@ -440,7 +441,10 @@
 
         // Evento di rilascio del mouse
         document.addEventListener('mouseup', () => {
-            isDragging = false;
+            if (isDragging) {
+                isDragging = false;
+                viewer.style.pointerEvents = 'auto'; // Riattiva interattività dell'iframe
+            }
         });
 
         // Inizializzazione dimensioni al caricamento
