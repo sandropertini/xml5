@@ -44,9 +44,11 @@
             writing-mode: vertical-rl;
             text-orientation: mixed;
             padding: 12px 8px;
-            border-radius: 0 8px 8px 0; /* Bordo arrotondato verso l'interno */
-            height: 100px;
-            transform: rotate(180deg); /* Ruota il testo per leggibilità */
+            border-radius: 0 8px 8px 0; /* Solo bordi interni arrotondati */
+            height: 120px; /* Altezza aumentata per evitare sovrapposizioni */
+            transform: rotate(180deg);
+            background: linear-gradient(135deg, #4a90e2, #357abd); /* Solo gradiente, senza bianco */
+            text-align: right; /* Sposta il testo verso l'esterno */
         }
         
         .panel {
@@ -265,17 +267,8 @@
         }
 
         #lightSliderContainer {
-            position: absolute;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: none;
-            z-index: 101;
-            transition: background 0.3s;
+            margin-left: 10px;
         }
 
         #lightSlider {
@@ -287,6 +280,7 @@
             outline: none;
             opacity: 0.7;
             transition: opacity 0.2s;
+            vertical-align: middle;
         }
 
         #lightSlider:hover {
@@ -348,8 +342,7 @@
             background: #666;
         }
         body.dark-theme #controlsBar,
-        body.dark-theme #topControls,
-        body.dark-theme #lightSliderContainer {
+        body.dark-theme #topControls {
             background: rgba(40, 40, 40, 0.95);
         }
         body.dark-theme #bomSearch {
@@ -392,6 +385,9 @@
         <button id="zoomInButton" title="Zoom In">+</button>
         <button id="zoomOutButton" title="Zoom Out">-</button>
         <button id="toggleLightButton" title="Intensità Luci">💡</button>
+        <div id="lightSliderContainer">
+            <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
+        </div>
         <button id="showAllButton" title="Mostra Tutti">👁️</button>
         <select id="viewModeSelect" title="Modalità Vista">
             <option value="solid" title="Solido">🟥</option>
@@ -403,9 +399,6 @@
             <option value="light" title="Chiaro">☀️</option>
             <option value="dark" title="Scuro">🌙</option>
         </select>
-    </div>
-    <div id="lightSliderContainer">
-        <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
@@ -449,7 +442,7 @@
         let activeAnimationItem = null;
         let selectedParts = new Set();
         let originalMaterials = new Map();
-        let modifiedMaterials = new Map(); // Per mantenere gli effetti visivi persistenti
+        let modifiedMaterials = new Map();
 
         function updatePanelPositions() {
             const controlsBar = document.getElementById('controlsBar');
@@ -464,9 +457,9 @@
             if (!animationContainer.classList.contains('collapsed')) {
                 bomContainer.style.top = `${animationTop + animationContainer.offsetHeight + margin}px`;
             } else if (!bomContainer.classList.contains('collapsed')) {
-                bomContainer.style.top = `${animationTop + 40 + margin}px`; // Spazio per etichetta Animazioni
+                bomContainer.style.top = `${animationTop + 130 + margin}px`; // Spazio per etichetta Animazioni
             } else {
-                bomContainer.style.top = `${animationTop + 50 + margin}px`; // Evita sovrapposizione
+                bomContainer.style.top = `${animationTop + 260 + margin}px`; // Evita sovrapposizione
             }
         }
 
@@ -576,7 +569,7 @@
                 selectedParts.forEach(p => {
                     p.traverse(child => {
                         if (child.isMesh && modifiedMaterials.has(child)) {
-                            child.material = modifiedMaterials.get(child); // Mantieni effetto visivo
+                            child.material = modifiedMaterials.get(child);
                         } else if (child.isMesh && originalMaterials.has(child)) {
                             child.material = originalMaterials.get(child);
                         }
@@ -589,7 +582,7 @@
             if (selectedParts.has(part)) {
                 part.traverse(child => {
                     if (child.isMesh && modifiedMaterials.has(child)) {
-                        child.material = modifiedMaterials.get(child); // Ripristina effetto visivo
+                        child.material = modifiedMaterials.get(child);
                     } else if (child.isMesh && originalMaterials.has(child)) {
                         child.material = originalMaterials.get(child);
                     }
@@ -604,7 +597,7 @@
                         }
                         child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                         if (modifiedMaterials.has(child)) {
-                            child.material = modifiedMaterials.get(child); // Mantieni effetto visivo se presente
+                            child.material = modifiedMaterials.get(child);
                         }
                     }
                 });
@@ -799,7 +792,8 @@
                             toggleButton.classList.remove('hidden');
                             toggleButton.textContent = '👁️';
                         });
-                        modifiedMaterials.clear(); // Reset degli effetti visivi
+                        modifiedMaterials.clear();
+                        viewModeSelect.value = 'solid'; // Imposta su "solid" dopo reset
                         return;
                     }
 
@@ -826,7 +820,7 @@
                                     newMaterial = material.clone();
                                 }
                                 child.material = newMaterial;
-                                modifiedMaterials.set(child, newMaterial); // Salva l'effetto applicato
+                                modifiedMaterials.set(child, newMaterial); // Aggiorna sempre l'effetto
                             }
                         });
                     });
