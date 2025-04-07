@@ -15,27 +15,34 @@
             display: flex;
             width: 100%;
             height: 100%;
+            position: relative;
         }
         #viewer { 
-            flex: 0 0 70%; /* Larghezza iniziale 70%, non ridimensionabile orizzontalmente */
-            height: 100%; /* Altezza piena del contenitore */
+            flex: 1; /* Si espande per occupare lo spazio disponibile */
+            height: 100%; 
             border: none; 
-            resize: vertical; /* Ridimensionabile solo verticalmente */
             overflow: auto; /* Scroll indipendente */
-            min-height: 100px; /* Altezza minima */
-            max-height: 90vh; /* Altezza massima */
+            min-width: 100px; /* Larghezza minima */
+            max-width: 90vw; /* Larghezza massima */
+        }
+        #resizer {
+            width: 5px;
+            height: 100%;
+            background: #ccc;
+            cursor: col-resize; /* Cursore per ridimensionamento orizzontale */
+            position: absolute;
+            z-index: 1;
         }
         #procedure { 
-            flex: 0 0 30%; /* Larghezza iniziale 30%, non ridimensionabile orizzontalmente */
-            height: 100%; /* Altezza piena del contenitore */
+            flex: 0 0 30%; /* Larghezza iniziale 30% */
+            height: 100%; 
             padding: 20px; 
-            overflow-y: auto; /* Scroll verticale indipendente */
+            overflow-y: auto; /* Scroll verticale isolato */
             background: #fff; 
             border-left: 2px solid #ccc; 
-            resize: vertical; /* Ridimensionabile solo verticalmente */
-            min-height: 100px; /* Altezza minima */
-            max-height: 90vh; /* Altezza massima */
-            box-sizing: border-box; /* Include padding e bordi nella dimensione */
+            min-width: 100px; /* Larghezza minima */
+            max-width: 90vw; /* Larghezza massima */
+            box-sizing: border-box;
         }
         #procedure h2 { 
             font-size: 1.5em; 
@@ -81,6 +88,7 @@
 <body>
     <div id="container">
         <iframe id="viewer" src="3D.html"></iframe>
+        <div id="resizer"></div>
         <div id="procedure">
             <h2 id="techname">Procedura di Smontaggio</h2>
             <p id="description"></p>
@@ -194,18 +202,36 @@
                 document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
             });
 
-        // Ridimensionamento sincronizzato
+        // Logica per il ridimensionamento orizzontale
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
+        const resizer = document.getElementById('resizer');
+        let isResizing = false;
 
-        viewer.addEventListener('resize', () => {
-            const newHeight = viewer.style.height;
-            procedure.style.height = newHeight; // Sincronizza l'altezza
+        // Posiziona il resizer tra viewer e procedure
+        resizer.style.left = `${viewer.offsetWidth}px`;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            e.preventDefault(); // Impedisce la selezione del testo
         });
 
-        procedure.addEventListener('resize', () => {
-            const newHeight = procedure.style.height;
-            viewer.style.height = newHeight; // Sincronizza l'altezza
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const containerWidth = container.offsetWidth;
+            const newViewerWidth = e.clientX;
+            const newProcedureWidth = containerWidth - newViewerWidth - resizer.offsetWidth;
+
+            if (newViewerWidth >= 100 && newProcedureWidth >= 100) { // Limiti minimi
+                viewer.style.width = `${newViewerWidth}px`;
+                procedure.style.width = `${newProcedureWidth}px`;
+                resizer.style.left = `${newViewerWidth}px`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
         });
     </script>
 </body>
