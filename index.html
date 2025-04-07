@@ -321,22 +321,21 @@
                 document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
             });
 
-        // Logica di ridimensionamento rivista
+        // Nuova logica di ridimensionamento
         const container = document.getElementById('container');
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
 
         let isResizing = false;
-        let initialX;
-        let initialViewerWidth;
-        let initialProcedureWidth;
+        let startX;
+        let startViewerPercentage;
 
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
-            initialX = e.clientX;
-            initialViewerWidth = viewer.offsetWidth;
-            initialProcedureWidth = procedure.offsetWidth;
+            startX = e.clientX;
+            const containerWidth = container.offsetWidth;
+            startViewerPercentage = (viewer.offsetWidth / containerWidth) * 100;
             document.body.style.cursor = 'col-resize';
             e.preventDefault();
         });
@@ -344,20 +343,18 @@
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
 
-            const deltaX = e.clientX - initialX;
             const containerWidth = container.offsetWidth;
-            let newViewerWidth = initialViewerWidth + deltaX;
-            let newProcedureWidth = initialProcedureWidth - deltaX;
+            const deltaX = e.clientX - startX;
+            const deltaPercentage = (deltaX / containerWidth) * 100;
 
-            // Limiti minimi e massimi
-            const minWidth = 100;
-            const maxWidth = containerWidth - minWidth;
+            let newViewerPercentage = startViewerPercentage + deltaPercentage;
+            const minPercentage = 10; // Minimo 10% per entrambe le sezioni
+            const maxPercentage = 90; // Massimo 90% per lasciare spazio all'altra sezione
 
-            newViewerWidth = Math.max(minWidth, Math.min(newViewerWidth, maxWidth));
-            newProcedureWidth = containerWidth - newViewerWidth;
+            newViewerPercentage = Math.max(minPercentage, Math.min(newViewerPercentage, maxPercentage));
 
-            viewer.style.width = `${newViewerWidth}px`;
-            procedure.style.width = `${newProcedureWidth}px`;
+            viewer.style.width = `${newViewerPercentage}%`;
+            procedure.style.width = `${100 - newViewerPercentage}%`;
         });
 
         document.addEventListener('mouseup', () => {
@@ -369,26 +366,16 @@
 
         // Inizializzazione dimensioni al caricamento
         window.addEventListener('load', () => {
-            const containerWidth = container.offsetWidth;
-            viewer.style.width = `${containerWidth * 0.7}px`;
-            procedure.style.width = `${containerWidth * 0.3}px`;
+            viewer.style.width = '70%';
+            procedure.style.width = '30%';
         });
 
         // Adattamento al ridimensionamento della finestra
         window.addEventListener('resize', () => {
-            const containerWidth = container.offsetWidth;
-            const currentViewerWidth = parseFloat(viewer.style.width) || containerWidth * 0.7;
-            const currentProcedureWidth = parseFloat(procedure.style.width) || containerWidth * 0.3;
-            const totalCurrentWidth = currentViewerWidth + currentProcedureWidth;
-
-            if (totalCurrentWidth > 0) {
-                const scale = containerWidth / totalCurrentWidth;
-                viewer.style.width = `${currentViewerWidth * scale}px`;
-                procedure.style.width = `${currentProcedureWidth * scale}px`;
-            } else {
-                viewer.style.width = `${containerWidth * 0.7}px`;
-                procedure.style.width = `${containerWidth * 0.3}px`;
-            }
+            const currentViewerPercentage = parseFloat(viewer.style.width) || 70;
+            const currentProcedurePercentage = parseFloat(procedure.style.width) || 30;
+            viewer.style.width = `${currentViewerPercentage}%`;
+            procedure.style.width = `${currentProcedurePercentage}%`;
         });
     </script>
 </body>
