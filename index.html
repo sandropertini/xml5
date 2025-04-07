@@ -205,6 +205,7 @@
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
+
         let isResizing = false;
         let startX;
         let startViewerWidth;
@@ -226,6 +227,7 @@
             let newProcedureWidth = startProcedureWidth - deltaX;
 
             const containerWidth = container.offsetWidth;
+            // Limiti per garantire che nessuna sezione sia più piccola di 100px
             newViewerWidth = Math.max(100, Math.min(newViewerWidth, containerWidth - 100));
             newProcedureWidth = containerWidth - newViewerWidth;
 
@@ -235,6 +237,10 @@
 
         document.addEventListener('mouseup', () => {
             isResizing = false;
+        });
+
+        document.addEventListener('mouseleave', () => {
+            isResizing = false; // Ferma il ridimensionamento se il mouse esce dalla finestra
         });
 
         // Imposta le larghezze iniziali in pixel
