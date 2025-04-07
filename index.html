@@ -35,7 +35,7 @@
         }
         #procedure li { 
             margin: 10px 0; 
-            list-style-type: none; /* Rimuove i numeri automatici per personalizzazione */
+            list-style-type: none; 
         }
         #error { 
             color: red; 
@@ -100,25 +100,28 @@
                 }
 
                 // Funzione per risolvere i riferimenti nel testo
-                function resolveReferences(text, xmlNode) {
-                    let resolvedText = text || 'Contenuto non disponibile';
-                    const xrefs = xmlNode.getElementsByTagName('xref');
-                    for (let xref of xrefs) {
-                        const xrefId = xref.getAttribute('xrefid');
-                        const xrefType = xref.getAttribute('xidtype');
-                        let replacement = xrefId;
-                        if (xrefType === 'supply' && supplies[xrefId]) {
-                            replacement = supplies[xrefId];
-                        } else if (xrefType === 'figure') {
-                            replacement = `Figura ${xrefId}`;
+                function resolveReferences(node) {
+                    let text = '';
+                    for (let child of node.childNodes) {
+                        if (child.nodeType === Node.TEXT_NODE) {
+                            text += child.textContent;
+                        } else if (child.nodeName === 'xref') {
+                            const xrefId = child.getAttribute('xrefid');
+                            const xrefType = child.getAttribute('xidtype');
+                            if (xrefType === 'supply' && supplies[xrefId]) {
+                                text += supplies[xrefId];
+                            } else if (xrefType === 'figure') {
+                                text += `Figura ${xrefId}`;
+                            } else {
+                                text += xrefId; // Fallback
+                            }
+                        } else if (child.nodeName === 'refdm') {
+                            text += '[Riferimento a modulo esterno]';
+                        } else {
+                            text += resolveReferences(child); // Ricorsione per nodi annidati
                         }
-                        resolvedText = resolvedText.replace(`<xref xidtype="${xrefType}" xrefid="${xrefId}"/>`, replacement);
                     }
-                    const refdms = xmlNode.getElementsByTagName('refdm');
-                    for (let refdm of refdms) {
-                        resolvedText = resolvedText.replace(/<refdm>[\s\S]*?<\/refdm>/, '[Riferimento a modulo esterno]');
-                    }
-                    return resolvedText;
+                    return text || 'Contenuto non disponibile';
                 }
 
                 // Estrazione e formattazione dei passaggi
@@ -134,7 +137,7 @@
                     const li = document.createElement('li');
                     const div = document.createElement('div');
                     div.className = className;
-                    div.innerHTML = prefix ? `${prefix} ${text}` : text;
+                    div.textContent = prefix ? `${prefix} ${text}` : text;
                     li.appendChild(div);
                     stepList.appendChild(li);
                 }
@@ -143,7 +146,7 @@
                 const warnings = proced.getElementsByTagName('warning');
                 for (let warning of warnings) {
                     const para = warning.getElementsByTagName('para')[0];
-                    const text = resolveReferences(para.textContent, para);
+                    const text = resolveReferences(para);
                     addStep(text, 'warning', 'Avvertimento:');
                 }
 
@@ -159,14 +162,14 @@
                     // Note
                     for (let note of notes) {
                         const para = note.getElementsByTagName('para')[0];
-                        const text = resolveReferences(para.textContent, para);
+                        const text = resolveReferences(para);
                         addStep(text, 'note', 'Nota:');
                     }
 
                     // Steps
                     for (let step of steps) {
                         const para = step.getElementsByTagName('para')[0];
-                        const text = resolveReferences(para.textContent, para);
+                        const text = resolveReferences(para);
                         addStep(`${stepCounter}. ${text}`, 'step');
                         stepCounter++;
                     }
@@ -174,7 +177,7 @@
                     // Cautions
                     for (let caution of cautions) {
                         const para = caution.getElementsByTagName('para')[0];
-                        const text = resolveReferences(para.textContent, para);
+                        const text = resolveReferences(para);
                         addStep(text, 'caution', 'Cautela:');
                     }
                 }
