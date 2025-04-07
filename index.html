@@ -321,49 +321,69 @@
                 document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
             });
 
+        // Nuova logica di ridimensionamento
         const container = document.getElementById('container');
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
 
-        let startX;
-        let startViewerWidth;
-        let startProcedureWidth;
+        let isResizing = false;
+        let lastX;
 
-        function startResize(e) {
-            startX = e.clientX;
-            startViewerWidth = viewer.offsetWidth;
-            startProcedureWidth = procedure.offsetWidth;
-            document.addEventListener('mousemove', resize, { passive: false });
-            document.addEventListener('mouseup', stopResize, { once: true });
-            e.preventDefault();
-        }
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            lastX = e.clientX;
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault(); // Evita selezione testo
+        });
 
-        function resize(e) {
-            const deltaX = e.clientX - startX;
-            let newViewerWidth = startViewerWidth + deltaX;
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
             const containerWidth = container.offsetWidth;
-            newViewerWidth = Math.max(100, Math.min(newViewerWidth, containerWidth - 100));
-            const newProcedureWidth = containerWidth - newViewerWidth;
+            const deltaX = e.clientX - lastX;
+            const currentViewerWidth = viewer.offsetWidth;
+            const currentProcedureWidth = procedure.offsetWidth;
+
+            let newViewerWidth = currentViewerWidth + deltaX;
+            let newProcedureWidth = currentProcedureWidth - deltaX;
+
+            // Limiti minimi e massimi
+            const minWidth = 100;
+            const maxWidth = containerWidth - minWidth;
+
+            if (newViewerWidth < minWidth) {
+                newViewerWidth = minWidth;
+                newProcedureWidth = containerWidth - minWidth;
+            } else if (newProcedureWidth < minWidth) {
+                newProcedureWidth = minWidth;
+                newViewerWidth = containerWidth - minWidth;
+            } else if (newViewerWidth > maxWidth) {
+                newViewerWidth = maxWidth;
+                newProcedureWidth = minWidth;
+            }
 
             viewer.style.width = `${newViewerWidth}px`;
             procedure.style.width = `${newProcedureWidth}px`;
-            e.preventDefault();
-        }
 
-        function stopResize() {
-            document.removeEventListener('mousemove', resize);
-            document.removeEventListener('mouseup', stopResize);
-        }
+            lastX = e.clientX; // Aggiorna la posizione iniziale per il prossimo movimento
+        });
 
-        resizer.addEventListener('mousedown', startResize);
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+            }
+        });
 
+        // Inizializzazione dimensioni al caricamento
         window.addEventListener('load', () => {
             const containerWidth = container.offsetWidth;
             viewer.style.width = `${containerWidth * 0.7}px`;
             procedure.style.width = `${containerWidth * 0.3}px`;
         });
 
+        // Adattamento al ridimensionamento della finestra
         window.addEventListener('resize', () => {
             const containerWidth = container.offsetWidth;
             const currentViewerWidth = parseFloat(viewer.style.width) || containerWidth * 0.7;
