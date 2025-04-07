@@ -26,6 +26,10 @@
             font-size: 1.5em; 
             margin-bottom: 10px; 
         }
+        #procedure p#description { 
+            font-style: italic; 
+            margin-bottom: 15px; 
+        }
         #procedure ol { 
             padding-left: 20px; 
         }
@@ -43,7 +47,8 @@
 
     <!-- Sezione per la procedura testuale -->
     <div id="procedure">
-        <h2>Procedura di Smontaggio</h2>
+        <h2 id="techname">Procedura di Smontaggio</h2>
+        <p id="description"></p>
         <ol id="steps"></ol>
         <p id="error"></p>
     </div>
@@ -61,6 +66,12 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(data, 'text/xml');
                 
+                // Estrazione di techname e infoname
+                const techname = xmlDoc.getElementsByTagName('techname')[0]?.textContent || 'Nome procedura non disponibile';
+                const infoname = xmlDoc.getElementsByTagName('infoname')[0]?.textContent || 'Descrizione non disponibile';
+                document.getElementById('techname').textContent = techname;
+                document.getElementById('description').textContent = infoname;
+
                 // Estrazione dei passaggi procedurali da <mainfunc>
                 const mainFunc = xmlDoc.getElementsByTagName('mainfunc')[0];
                 if (!mainFunc) {
