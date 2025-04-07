@@ -289,7 +289,7 @@
                     div.innerHTML = prefix ? `${prefix} ${text}` : text;
                     if (className === 'step') {
                         const stepNumber = prefix.replace('.', '').trim();
-                        div.dataset.stepNumber = stepNumber; // Salva il numero del passo
+                        div.dataset.stepNumber = stepNumber;
                         div.addEventListener('click', () => {
                             const animationName = `Step${stepNumber}`;
                             if (iframeReady) {
@@ -398,30 +398,30 @@
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
+        const container = document.getElementById('container');
 
         // Variabili per il trascinamento
         let isDragging = false;
         let startX;
-        let initialViewerWidth;
+        let initialViewerWidthPx;
 
-        // Funzione per calcolare la larghezza in percentuale basata sui pixel
         function updateWidths(currentX) {
+            const containerWidth = container.offsetWidth;
             const deltaX = currentX - startX;
-            const pixelsPerPercent = 15; // Ogni 15 pixel = 2%
-            const percentChange = Math.round(deltaX / pixelsPerPercent) * 2;
+            const newViewerWidthPx = initialViewerWidthPx + deltaX;
 
-            let newViewerWidth = initialViewerWidth + percentChange;
-            newViewerWidth = Math.max(10, Math.min(90, newViewerWidth));
+            let newViewerWidthPercent = (newViewerWidthPx / containerWidth) * 100;
+            newViewerWidthPercent = Math.max(10, Math.min(90, newViewerWidthPercent));
 
-            viewer.style.width = `${newViewerWidth}%`;
-            procedure.style.width = `${100 - newViewerWidth}%`;
+            viewer.style.width = `${newViewerWidthPercent}%`;
+            procedure.style.width = `${100 - newViewerWidthPercent}%`;
         }
 
         // Evento al clic sul resizer
         resizer.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX;
-            initialViewerWidth = parseFloat(viewer.style.width) || 30;
+            initialViewerWidthPx = viewer.offsetWidth;
             e.preventDefault();
         });
 
