@@ -39,13 +39,32 @@
         #error { 
             color: red; 
         }
+        /* Stili per formattazione specifica */
+        .note { 
+            background: #f9f9d9; 
+            padding: 10px; 
+            border-left: 4px solid #ffeb3b; 
+            margin: 5px 0; 
+        }
+        .warning { 
+            background: #ffebee; 
+            padding: 10px; 
+            border-left: 4px solid #f44336; 
+            margin: 5px 0; 
+        }
+        .caution { 
+            background: #fff3e0; 
+            padding: 10px; 
+            border-left: 4px solid #ff9800; 
+            margin: 5px 0; 
+        }
+        .step { 
+            margin: 5px 0; 
+        }
     </style>
 </head>
 <body>
-    <!-- Iframe per richiamare 3D.html -->
     <iframe id="viewer" src="3D.html"></iframe>
-
-    <!-- Sezione per la procedura testuale -->
     <div id="procedure">
         <h2 id="techname">Procedura di Smontaggio</h2>
         <p id="description"></p>
@@ -53,7 +72,6 @@
         <p id="error"></p>
     </div>
 
-    <!-- Script per caricare e parsare DEMO.xml -->
     <script>
         fetch('DEMO.xml')
             .then(response => {
@@ -65,27 +83,103 @@
             .then(data => {
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(data, 'text/xml');
-                
+
                 // Estrazione di techname e infoname
                 const techname = xmlDoc.getElementsByTagName('techname')[0]?.textContent || 'Nome procedura non disponibile';
                 const infoname = xmlDoc.getElementsByTagName('infoname')[0]?.textContent || 'Descrizione non disponibile';
                 document.getElementById('techname').textContent = techname;
                 document.getElementById('description').textContent = infoname;
 
-                // Estrazione di tutti i <para> nel documento
-                const paras = xmlDoc.getElementsByTagName('para');
+                // Raccolta dei riferimenti per <xref> (es. supplies)
+                const supplies = {};
+                const supplyNodes = xmlDoc.getElementsByTagName('supply');
+                for (let supply of supplyNodes) {
+                    const id = supply.getAttribute('id');
+                    const nomen = supply.getElementsByTagName('nomen')[0]?.textContent || 'Oggetto non specificato';
+                    supplies[id] = nomen;
+                }
+
+                // Funzione per risolvere i riferimenti nel testo
+                function resolveReferences(text, xmlNode) {
+                    let resolvedText = text || 'Contenuto non disponibile';
+                    const xrefs = xmlNode.getElementsByTagName('xref');
+                    for (let xref of xrefs) {
+                        const xrefId = xref.getAttribute('xrefid');
+                        const xrefType = xref.getAttribute('xidtype');
+                        let replacement = xrefId;
+                        if (xrefType === 'supply' && supplies[xrefId]) {
+                            replacement = supplies[xrefId];
+                        } else if (xrefType === 'figure') {
+                            replacement = `Figura ${xrefId}`;
+                        }
+                        resolvedText = resolvedText.replace(`<xref xidtype="${xrefType}" xrefid="${xrefId}"/>`, replacement);
+                    }
+                    // Semplice gestione di <refdm> (può essere espansa)
+                    const refdms = xmlNode.getElementsByTagName('refdm');
+                    for (let refdm of refdms) {
+                        resolvedText = resolvedText.replace(/<refdm>[\s\S]*?<\/refdm>/, '[Riferimento a modulo esterno]');
+                    }
+                    return resolvedText;
+                }
+
+                // Estrazione e formattazione dei passaggi
                 const stepList = document.getElementById('steps');
-                
-                if (paras.length === 0) {
-                    document.getElementById('error').textContent = 'Nessun elemento <para> trovato nel file XML';
+                const proced = xmlDoc.getElementsByTagName('proced')[0];
+                if (!proced) {
+                    document.getElementById('error').textContent = 'Nessuna procedura trovata nel file XML';
                     return;
                 }
 
-                for (let i = 0; i < paras.length; i++) {
-                    const stepText = paras[i].textContent || 'Contenuto non disponibile';
+                // Funzione per aggiungere un elemento alla lista
+                function addStep(text, className) {
                     const li = document.createElement('li');
-                    li.textContent = `${i + 1}. ${stepText}`;
+                    const div = document.createElement('div');
+                    div.className = className;
+                    div.innerHTML = text; // Usa innerHTML per mantenere eventuali formattazioni
+                    li.appendChild(div);
                     stepList.appendChild(li);
+                }
+
+                // Prelreqs: Warnings
+                const warnings = proced.getElementsByTagName('warning');
+                for (let i = 0; i < warnings.length; i++) {
+                    const para = warnings[i].getElementsByTagName('para')[0];
+                    const text = resolveReferences(para.textContent, para);
+                    addStep(`${i + 1}. ${text}`, 'warning');
+                }
+
+                // Mainfunc: Note, Steps, Cautions
+                const mainfunc = proced.getElementsByTagName('mainfunc')[0];
+                if (mainfunc) {
+                    const notes = mainfunc.getElementsByTagName('note');
+                    const steps = mainfunc.getElementsByTagName('step1');
+                    const cautions = mainfunc.getElementsByTagName('caution');
+
+                    let stepCounter = warnings.length + 1;
+
+                    // Note
+                    for (let note of notes) {
+                        const para = note.getElementsByTagName('para')[0];
+                        const text = resolveReferences(para.textContent, para);
+                        addStep(`${stepCounter}. ${text}`, 'note');
+                        stepCounter++;
+                    }
+
+                    // Steps
+                    for (let step of steps) {
+                        const para = step.getElementsByTagName('para')[0];
+                        const text = resolveReferences(para.textContent, para);
+                        addStep(`${stepCounter}. ${text}`, 'step');
+                        stepCounter++;
+                    }
+
+                    // Cautions
+                    for (let caution of cautions) {
+                        const para = caution.getElementsByTagName('para')[0];
+                        const text = resolveReferences(para.textContent, para);
+                        addStep(`${stepCounter}. ${text}`, 'caution');
+                        stepCounter++;
+                    }
                 }
             })
             .catch(error => {
