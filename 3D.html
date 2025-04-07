@@ -223,6 +223,7 @@
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
+            position: relative;
         }
 
         #topControls button:hover {
@@ -244,46 +245,49 @@
             padding: 0;
             border: none;
             border-radius: 50%;
-            background: white; /* Contenitore bianco */
-            color: #357abd; /* Colore delle icone */
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
             font-size: 20px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.3s;
+            transition: transform 0.2s, background 0.3s;
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
             text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         #viewModeSelect:hover, #themeSelect:hover {
+            background: linear-gradient(135deg, #5aa0f2, #458acd);
             transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
         #viewModeSelect option, #themeSelect option {
-            background: white;
-            color: #357abd;
+            background: #357abd;
+            color: white;
             font-size: 16px;
         }
 
         #lightSliderContainer {
+            position: absolute;
+            bottom: 60px; /* Sopra il pulsante */
+            left: 50%;
+            transform: translateX(-50%);
             display: none;
-            margin-left: 10px;
+            z-index: 101;
+            width: 20px; /* Larghezza fissa per slider verticale */
         }
 
         #lightSlider {
-            width: 8px; /* Larghezza ridotta per verticale */
-            height: 100px; /* Altezza slider */
-            -webkit-appearance: none;
-            appearance: none;
+            -webkit-appearance: slider-vertical;
+            -moz-appearance: slider-vertical;
+            appearance: slider-vertical;
+            height: 100px; /* Altezza dello slider */
+            width: 8px;
             background: #ddd;
             border-radius: 5px;
             outline: none;
             opacity: 0.7;
             transition: opacity 0.2s;
-            writing-mode: bt-lr; /* Verticale, incrementale verso l'alto */
-            transform: rotate(180deg); /* Inverti per incrementare verso l'alto */
         }
 
         #lightSlider:hover {
@@ -348,11 +352,6 @@
         body.dark-theme #topControls {
             background: rgba(40, 40, 40, 0.95);
         }
-        body.dark-theme #viewModeSelect,
-        body.dark-theme #themeSelect {
-            background: #333;
-            color: #5aa0f2;
-        }
         body.dark-theme #bomSearch {
             background: #333;
             color: #ddd;
@@ -393,9 +392,6 @@
         <button id="zoomInButton" title="Zoom In">+</button>
         <button id="zoomOutButton" title="Zoom Out">-</button>
         <button id="toggleLightButton" title="Intensità Luci">💡</button>
-        <div id="lightSliderContainer">
-            <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
-        </div>
         <button id="showAllButton" title="Mostra Tutti">👁️</button>
         <select id="viewModeSelect" title="Modalità Vista">
             <option value="solid" title="Solido">🟥</option>
@@ -407,6 +403,9 @@
             <option value="light" title="Chiaro">☀️</option>
             <option value="dark" title="Scuro">🌙</option>
         </select>
+    </div>
+    <div id="lightSliderContainer">
+        <input type="range" id="lightSlider" min="0" max="1" step="0.01" value="1">
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
@@ -469,6 +468,13 @@
             } else {
                 bomContainer.style.top = `${animationTop + 260 + margin}px`;
             }
+        }
+
+        function updateLightSliderPosition() {
+            const lightButton = document.getElementById('toggleLightButton');
+            const lightSliderContainer = document.getElementById('lightSliderContainer');
+            const rect = lightButton.getBoundingClientRect();
+            lightSliderContainer.style.left = `${rect.left + rect.width / 2}px`;
         }
 
         function applyPreviousAnimations(index) {
@@ -732,13 +738,13 @@
                 document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
 
                 document.getElementById('zoomInButton').addEventListener('click', () => {
-                    if (camera.position.z > controls.minDistance) {
+                    if (controls.getDistance() > controls.minDistance) {
                         camera.position.z -= 0.5;
                         controls.update();
                     }
                 });
                 document.getElementById('zoomOutButton').addEventListener('click', () => {
-                    if (camera.position.z < controls.maxDistance) {
+                    if (controls.getDistance() < controls.maxDistance) {
                         camera.position.z += 0.5;
                         controls.update();
                     }
@@ -750,6 +756,7 @@
 
                 lightButton.addEventListener('click', () => {
                     lightSliderContainer.style.display = lightSliderContainer.style.display === 'block' ? 'none' : 'block';
+                    updateLightSliderPosition();
                 });
 
                 lightSlider.addEventListener('input', (e) => {
@@ -818,12 +825,12 @@
                                 let newMaterial;
                                 if (mode === 'wireframe') {
                                     newMaterial = new THREE.MeshBasicMaterial({
-                                        color: child.material.color || 0x000000,
+                                        color: originalMaterials.get(child).color || 0x000000,
                                         wireframe: true
                                     });
                                 } else if (mode === 'transparent') {
                                     newMaterial = new THREE.MeshStandardMaterial({
-                                        color: child.material.color || 0x000000,
+                                        color: originalMaterials.get(child).color || 0x000000,
                                         transparent: true,
                                         opacity: 0.5
                                     });
@@ -884,6 +891,7 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             updatePanelPositions();
+            updateLightSliderPosition();
         });
     </script>
 </body>
