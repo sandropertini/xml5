@@ -44,11 +44,11 @@
             writing-mode: vertical-rl;
             text-orientation: mixed;
             padding: 12px 8px;
-            border-radius: 0 8px 8px 0; /* Solo bordi interni arrotondati */
-            height: 120px; /* Altezza aumentata per evitare sovrapposizioni */
+            border-radius: 0 8px 8px 0;
+            height: 120px;
             transform: rotate(180deg);
-            background: linear-gradient(135deg, #4a90e2, #357abd); /* Solo gradiente, senza bianco */
-            text-align: right; /* Sposta il testo verso l'esterno */
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            text-align: right;
         }
         
         .panel {
@@ -244,25 +244,26 @@
             padding: 0;
             border: none;
             border-radius: 50%;
-            background: linear-gradient(135deg, #4a90e2, #357abd);
-            color: white;
+            background: white; /* Contenitore bianco */
+            color: #357abd; /* Colore delle icone */
             font-size: 20px;
             cursor: pointer;
-            transition: transform 0.2s, background 0.3s;
+            transition: transform 0.2s, box-shadow 0.3s;
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
             text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         #viewModeSelect:hover, #themeSelect:hover {
-            background: linear-gradient(135deg, #5aa0f2, #458acd);
             transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
         #viewModeSelect option, #themeSelect option {
-            background: #357abd;
-            color: white;
+            background: white;
+            color: #357abd;
             font-size: 16px;
         }
 
@@ -272,15 +273,17 @@
         }
 
         #lightSlider {
-            width: 100px;
+            width: 8px; /* Larghezza ridotta per verticale */
+            height: 100px; /* Altezza slider */
             -webkit-appearance: none;
-            height: 8px;
+            appearance: none;
             background: #ddd;
             border-radius: 5px;
             outline: none;
             opacity: 0.7;
             transition: opacity 0.2s;
-            vertical-align: middle;
+            writing-mode: bt-lr; /* Verticale, incrementale verso l'alto */
+            transform: rotate(180deg); /* Inverti per incrementare verso l'alto */
         }
 
         #lightSlider:hover {
@@ -344,6 +347,11 @@
         body.dark-theme #controlsBar,
         body.dark-theme #topControls {
             background: rgba(40, 40, 40, 0.95);
+        }
+        body.dark-theme #viewModeSelect,
+        body.dark-theme #themeSelect {
+            background: #333;
+            color: #5aa0f2;
         }
         body.dark-theme #bomSearch {
             background: #333;
@@ -457,9 +465,9 @@
             if (!animationContainer.classList.contains('collapsed')) {
                 bomContainer.style.top = `${animationTop + animationContainer.offsetHeight + margin}px`;
             } else if (!bomContainer.classList.contains('collapsed')) {
-                bomContainer.style.top = `${animationTop + 130 + margin}px`; // Spazio per etichetta Animazioni
+                bomContainer.style.top = `${animationTop + 130 + margin}px`;
             } else {
-                bomContainer.style.top = `${animationTop + 260 + margin}px`; // Evita sovrapposizione
+                bomContainer.style.top = `${animationTop + 260 + margin}px`;
             }
         }
 
@@ -724,12 +732,16 @@
                 document.getElementById('stopButton').addEventListener('click', stopAllAnimations);
 
                 document.getElementById('zoomInButton').addEventListener('click', () => {
-                    camera.position.z -= 0.5;
-                    controls.update();
+                    if (camera.position.z > controls.minDistance) {
+                        camera.position.z -= 0.5;
+                        controls.update();
+                    }
                 });
                 document.getElementById('zoomOutButton').addEventListener('click', () => {
-                    camera.position.z += 0.5;
-                    controls.update();
+                    if (camera.position.z < controls.maxDistance) {
+                        camera.position.z += 0.5;
+                        controls.update();
+                    }
                 });
 
                 const lightButton = document.getElementById('toggleLightButton');
@@ -793,7 +805,7 @@
                             toggleButton.textContent = '👁️';
                         });
                         modifiedMaterials.clear();
-                        viewModeSelect.value = 'solid'; // Imposta su "solid" dopo reset
+                        viewModeSelect.value = 'solid';
                         return;
                     }
 
@@ -803,24 +815,23 @@
                                 if (!originalMaterials.has(child)) {
                                     originalMaterials.set(child, child.material.clone());
                                 }
-                                const material = originalMaterials.get(child);
                                 let newMaterial;
                                 if (mode === 'wireframe') {
                                     newMaterial = new THREE.MeshBasicMaterial({
-                                        color: material.color || 0x000000,
+                                        color: child.material.color || 0x000000,
                                         wireframe: true
                                     });
                                 } else if (mode === 'transparent') {
                                     newMaterial = new THREE.MeshStandardMaterial({
-                                        color: material.color || 0x000000,
+                                        color: child.material.color || 0x000000,
                                         transparent: true,
                                         opacity: 0.5
                                     });
                                 } else if (mode === 'solid') {
-                                    newMaterial = material.clone();
+                                    newMaterial = originalMaterials.get(child).clone();
                                 }
                                 child.material = newMaterial;
-                                modifiedMaterials.set(child, newMaterial); // Aggiorna sempre l'effetto
+                                modifiedMaterials.set(child, newMaterial);
                             }
                         });
                     });
