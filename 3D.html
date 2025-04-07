@@ -14,14 +14,20 @@
         }
         canvas { width: 100%; height: 100vh; }
         
-        #animationContainer, #bomContainer { 
+        #animationContainer { 
             position: absolute; 
             top: 10px; 
+            left: 10px; 
             z-index: 100; 
             width: 250px;
         }
-        #animationContainer { left: 10px; }
-        #bomContainer { right: 10px; }
+        #bomContainer { 
+            position: absolute; 
+            top: 60px; /* Posizionato sotto il pannello animazioni */
+            left: 10px; 
+            z-index: 100; 
+            width: 250px;
+        }
         
         .panel {
             background: rgba(255, 255, 255, 0.95);
@@ -110,7 +116,7 @@
         
         #controlsBar {
             position: absolute;
-            bottom: 15px;
+            top: 10px; /* Spostato in alto */
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
@@ -167,7 +173,7 @@
 
         #topControls {
             position: absolute;
-            top: 10px;
+            bottom: 15px; /* Spostato in basso */
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
@@ -240,7 +246,7 @@
 
         #lightSliderContainer {
             position: absolute;
-            top: 60px;
+            top: 60px; /* Resta sotto il nuovo #controlsBar */
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
