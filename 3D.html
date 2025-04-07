@@ -281,7 +281,7 @@
             height: 20px;
             background: linear-gradient(135deg, #4a90e2, #357abd);
             border-radius: 50%;
-            cursor            cursor: pointer;
+            cursor: pointer;
         }
 
         #bomSearch {
@@ -650,14 +650,22 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
+                // Filtra e ordina le animazioni
                 const stepAnimations = gltf.animations
                     .filter(clip => /^Step\d+(\.\d+)?$/.test(clip.name))
                     .map(clip => ({
                         clip,
                         name: clip.name
-                    }));
-                console.log('Animazioni disponibili:', stepAnimations.map(a => a.name));
+                    }))
+                    .sort((a, b) => {
+                        const numA = parseFloat(a.name.replace('Step', ''));
+                        const numB = parseFloat(b.name.replace('Step', ''));
+                        return numA - numB;
+                    });
 
+                console.log('Animazioni ordinate:', stepAnimations.map(a => a.name));
+
+                // Popola la lista con le animazioni ordinate
                 stepAnimations.forEach((anim, index) => {
                     const action = mixer.clipAction(anim.clip);
                     action.setLoop(THREE.LoopOnce);
