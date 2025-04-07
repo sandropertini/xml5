@@ -95,6 +95,10 @@
         }
         .step { 
             margin: 5px 0; 
+            cursor: pointer; 
+        }
+        .step:hover { 
+            background: #f0f0f0; 
         }
         .figure { 
             margin: 20px 0; 
@@ -213,16 +217,22 @@
                 const toolsList = document.getElementById('tools');
                 const consumablesList = document.getElementById('consumables');
                 const sparesList = document.getElementById('spares');
+                const viewerIframe = document.getElementById('viewer');
                 const proced = xmlDoc.getElementsByTagName('proced')[0];
                 if (!proced) {
                     document.getElementById('error').textContent = 'Nessuna procedura trovata nel file XML';
                     return;
                 }
 
-                function addItem(container, text, className = '', prefix = '') {
+                function addItem(container, text, className = '', prefix = '', animationId = null) {
                     const div = document.createElement('div');
                     div.className = className;
                     div.innerHTML = prefix ? `${prefix} ${text}` : text;
+                    if (animationId) {
+                        div.addEventListener('click', () => {
+                            viewerIframe.contentWindow.postMessage({ action: 'playAnimation', animation: animationId }, '*');
+                        });
+                    }
                     container.appendChild(div);
                 }
 
@@ -252,14 +262,16 @@
                     for (let step1 of steps1) {
                         const para = step1.getElementsByTagName('para')[0];
                         const text = resolveReferences(para);
-                        addItem(stepList, text, 'step', `${stepCounter}.`);
+                        const stepId = `Step${stepCounter}`;
+                        addItem(stepList, text, 'step', `${stepCounter}.`, stepId);
 
                         const steps2 = step1.getElementsByTagName('step2');
                         let subStepCounter = 1;
                         for (let step2 of steps2) {
                             const subPara = step2.getElementsByTagName('para')[0];
                             const subText = resolveReferences(subPara);
-                            addItem(stepList, subText, 'step', `${stepCounter}.${subStepCounter}.`);
+                            const subStepId = `Step${stepCounter}.${subStepCounter}`;
+                            addItem(stepList, subText, 'step', `${stepCounter}.${subStepCounter}.`, subStepId);
                             subStepCounter++;
                         }
                         stepCounter++;
