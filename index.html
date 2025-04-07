@@ -334,8 +334,7 @@
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
             startX = e.clientX;
-            const containerWidth = container.offsetWidth;
-            startViewerPercentage = (viewer.offsetWidth / containerWidth) * 100;
+            startViewerPercentage = (viewer.offsetWidth / container.offsetWidth) * 100;
             document.body.style.cursor = 'col-resize';
             e.preventDefault();
         });
@@ -343,25 +342,26 @@
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
 
-            const containerWidth = container.offsetWidth;
-            const deltaX = e.clientX - startX;
-            const deltaPercentage = (deltaX / containerWidth) * 100;
+            // Usa requestAnimationFrame per aggiornamenti fluidi
+            requestAnimationFrame(() => {
+                const deltaX = e.clientX - startX;
+                const containerWidth = container.offsetWidth;
+                const deltaPercentage = (deltaX / containerWidth) * 100;
 
-            let newViewerPercentage = startViewerPercentage + deltaPercentage;
-            const minPercentage = 10; // Minimo 10% per entrambe le sezioni
-            const maxPercentage = 90; // Massimo 90% per lasciare spazio all'altra sezione
+                let newViewerPercentage = startViewerPercentage + deltaPercentage;
+                const minPercentage = 10; // Minimo 10%
+                const maxPercentage = 90; // Massimo 90%
 
-            newViewerPercentage = Math.max(minPercentage, Math.min(newViewerPercentage, maxPercentage));
+                newViewerPercentage = Math.max(minPercentage, Math.min(newViewerPercentage, maxPercentage));
 
-            viewer.style.width = `${newViewerPercentage}%`;
-            procedure.style.width = `${100 - newViewerPercentage}%`;
+                viewer.style.width = `${newViewerPercentage}%`;
+                procedure.style.width = `${100 - newViewerPercentage}%`;
+            });
         });
 
         document.addEventListener('mouseup', () => {
-            if (isResizing) {
-                isResizing = false;
-                document.body.style.cursor = 'default';
-            }
+            isResizing = false;
+            document.body.style.cursor = 'default';
         });
 
         // Inizializzazione dimensioni al caricamento
@@ -373,9 +373,8 @@
         // Adattamento al ridimensionamento della finestra
         window.addEventListener('resize', () => {
             const currentViewerPercentage = parseFloat(viewer.style.width) || 70;
-            const currentProcedurePercentage = parseFloat(procedure.style.width) || 30;
             viewer.style.width = `${currentViewerPercentage}%`;
-            procedure.style.width = `${currentProcedurePercentage}%`;
+            procedure.style.width = `${100 - currentViewerPercentage}%`;
         });
     </script>
 </body>
