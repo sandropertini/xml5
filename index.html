@@ -95,6 +95,10 @@
         }
         .step { 
             margin: 5px 0; 
+            cursor: pointer; /* Aggiunto per indicare cliccabilità */
+        }
+        .step:hover { 
+            background: #f0f0f0; /* Feedback visivo al passaggio del mouse */
         }
         .figure { 
             margin: 20px 0; 
@@ -223,6 +227,15 @@
                     const div = document.createElement('div');
                     div.className = className;
                     div.innerHTML = prefix ? `${prefix} ${text}` : text;
+                    // Se è uno step, aggiungi un evento clic
+                    if (className === 'step') {
+                        div.addEventListener('click', () => {
+                            const stepNumber = prefix.replace('.', '').trim(); // Es. "1" o "3.2"
+                            const animationName = `Step${stepNumber}`; // Es. "Step1" o "Step3.2"
+                            const iframe = document.getElementById('viewer');
+                            iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
+                        });
+                    }
                     container.appendChild(div);
                 }
 
