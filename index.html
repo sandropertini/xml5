@@ -13,7 +13,7 @@
         body { 
             font-family: Arial, sans-serif; 
             display: flex; 
- Measures: flex-direction: column; 
+            flex-direction: column; 
         }
         #container {
             display: flex;
@@ -37,7 +37,7 @@
             position: relative;
         }
         #resizer:hover::after {
-            content: "Double click to resize";
+            content: "Clicca e trascina per ridimensionare";
             position: absolute;
             top: 50%;
             left: 10px;
@@ -145,7 +145,7 @@
             </details>
             <details>
                 <summary>Consumabili</summary>
-            <ul id="consumables"></ul>
+                <ul id="consumables"></ul>
             </details>
             <details open>
                 <summary>Procedura</summary>
@@ -339,24 +339,51 @@
                 document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
             });
 
-        // Logica del doppio click sul bordo
+        // Logica del trascinamento per il resize
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
 
-        const layouts = [
-            { viewer: 30, procedure: 70 },
-            { viewer: 50, procedure: 50 },
-            { viewer: 70, procedure: 30 },
-            { viewer: 90, procedure: 10 }
-        ];
-        let currentLayoutIndex = 0;
+        // Variabili per il trascinamento
+        let isDragging = false;
+        let startX; // Posizione iniziale del mouse
+        let initialViewerWidth; // Larghezza iniziale del viewer in percentuale
 
-        resizer.addEventListener('dblclick', () => {
-            currentLayoutIndex = (currentLayoutIndex + 1) % layouts.length;
-            const { viewer: viewerWidth, procedure: procedureWidth } = layouts[currentLayoutIndex];
-            viewer.style.width = `${viewerWidth}%`;
-            procedure.style.width = `${procedureWidth}%`;
+        // Funzione per calcolare la larghezza in percentuale basata sui pixel
+        function updateWidths(currentX) {
+            const deltaX = currentX - startX; // Differenza in pixel
+            const pixelsPerPercent = 20; // Ogni 20 pixel = 5%
+            const percentChange = Math.floor(deltaX / pixelsPerPercent) * 5; // Incremento del 5% per ogni 20px
+
+            // Calcola la nuova larghezza del viewer
+            let newViewerWidth = initialViewerWidth + percentChange;
+            
+            // Limita i valori tra 10% e 90%
+            newViewerWidth = Math.max(10, Math.min(90, newViewerWidth));
+
+            // Aggiorna le larghezze
+            viewer.style.width = `${newViewerWidth}%`;
+            procedure.style.width = `${100 - newViewerWidth}%`;
+        }
+
+        // Evento al clic sul resizer
+        resizer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX; // Posizione iniziale del mouse
+            initialViewerWidth = parseFloat(viewer.style.width) || 30; // Larghezza iniziale (default 30%)
+            e.preventDefault(); // Evita la selezione del testo
+        });
+
+        // Evento di movimento del mouse
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateWidths(e.clientX);
+            }
+        });
+
+        // Evento di rilascio del mouse
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
         });
 
         // Inizializzazione dimensioni al caricamento
