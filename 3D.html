@@ -44,8 +44,9 @@
             writing-mode: vertical-rl;
             text-orientation: mixed;
             padding: 12px 8px;
-            border-radius: 8px 0 0 8px;
+            border-radius: 0 8px 8px 0; /* Bordo arrotondato verso l'interno */
             height: 100px;
+            transform: rotate(180deg); /* Ruota il testo per leggibilità */
         }
         
         .panel {
@@ -448,6 +449,7 @@
         let activeAnimationItem = null;
         let selectedParts = new Set();
         let originalMaterials = new Map();
+        let modifiedMaterials = new Map(); // Per mantenere gli effetti visivi persistenti
 
         function updatePanelPositions() {
             const controlsBar = document.getElementById('controlsBar');
@@ -461,8 +463,10 @@
             animationContainer.style.top = `${animationTop}px`;
             if (!animationContainer.classList.contains('collapsed')) {
                 bomContainer.style.top = `${animationTop + animationContainer.offsetHeight + margin}px`;
+            } else if (!bomContainer.classList.contains('collapsed')) {
+                bomContainer.style.top = `${animationTop + 40 + margin}px`; // Spazio per etichetta Animazioni
             } else {
-                bomContainer.style.top = `${animationTop + 40 + margin}px`; // 40px per l'etichetta
+                bomContainer.style.top = `${animationTop + 50 + margin}px`; // Evita sovrapposizione
             }
         }
 
@@ -571,7 +575,9 @@
             if (!ctrlKey) {
                 selectedParts.forEach(p => {
                     p.traverse(child => {
-                        if (child.isMesh && originalMaterials.has(child)) {
+                        if (child.isMesh && modifiedMaterials.has(child)) {
+                            child.material = modifiedMaterials.get(child); // Mantieni effetto visivo
+                        } else if (child.isMesh && originalMaterials.has(child)) {
                             child.material = originalMaterials.get(child);
                         }
                     });
@@ -582,7 +588,9 @@
 
             if (selectedParts.has(part)) {
                 part.traverse(child => {
-                    if (child.isMesh && originalMaterials.has(child)) {
+                    if (child.isMesh && modifiedMaterials.has(child)) {
+                        child.material = modifiedMaterials.get(child); // Ripristina effetto visivo
+                    } else if (child.isMesh && originalMaterials.has(child)) {
                         child.material = originalMaterials.get(child);
                     }
                 });
@@ -595,6 +603,9 @@
                             originalMaterials.set(child, child.material.clone());
                         }
                         child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                        if (modifiedMaterials.has(child)) {
+                            child.material = modifiedMaterials.get(child); // Mantieni effetto visivo se presente
+                        }
                     }
                 });
                 button.classList.add('selected');
@@ -622,7 +633,9 @@
             });
             selectedParts.forEach(part => {
                 part.traverse(child => {
-                    if (child.isMesh && originalMaterials.has(child)) {
+                    if (child.isMesh && modifiedMaterials.has(child)) {
+                        child.material = modifiedMaterials.get(child);
+                    } else if (child.isMesh && originalMaterials.has(child)) {
                         child.material = originalMaterials.get(child);
                     }
                 });
@@ -786,6 +799,7 @@
                             toggleButton.classList.remove('hidden');
                             toggleButton.textContent = '👁️';
                         });
+                        modifiedMaterials.clear(); // Reset degli effetti visivi
                         return;
                     }
 
@@ -796,20 +810,23 @@
                                     originalMaterials.set(child, child.material.clone());
                                 }
                                 const material = originalMaterials.get(child);
+                                let newMaterial;
                                 if (mode === 'wireframe') {
-                                    child.material = new THREE.MeshBasicMaterial({
+                                    newMaterial = new THREE.MeshBasicMaterial({
                                         color: material.color || 0x000000,
                                         wireframe: true
                                     });
                                 } else if (mode === 'transparent') {
-                                    child.material = new THREE.MeshStandardMaterial({
+                                    newMaterial = new THREE.MeshStandardMaterial({
                                         color: material.color || 0x000000,
                                         transparent: true,
                                         opacity: 0.5
                                     });
                                 } else if (mode === 'solid') {
-                                    child.material = material.clone();
+                                    newMaterial = material.clone();
                                 }
+                                child.material = newMaterial;
+                                modifiedMaterials.set(child, newMaterial); // Salva l'effetto applicato
                             }
                         });
                     });
