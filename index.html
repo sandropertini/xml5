@@ -72,23 +72,18 @@
                 document.getElementById('techname').textContent = techname;
                 document.getElementById('description').textContent = infoname;
 
-                // Estrazione dei passaggi procedurali da <mainfunc>
-                const mainFunc = xmlDoc.getElementsByTagName('mainfunc')[0];
-                if (!mainFunc) {
-                    document.getElementById('error').textContent = 'Struttura XML non valida: mainfunc non trovato';
-                    return;
-                }
-                const steps = mainFunc.getElementsByTagName('step1');
+                // Estrazione di tutti i <para> nel documento
+                const paras = xmlDoc.getElementsByTagName('para');
                 const stepList = document.getElementById('steps');
                 
-                if (steps.length === 0) {
-                    document.getElementById('error').textContent = 'Nessun passaggio trovato nel file XML';
+                if (paras.length === 0) {
+                    document.getElementById('error').textContent = 'Nessun elemento <para> trovato nel file XML';
                     return;
                 }
 
-                for (let i = 0; i < steps.length; i++) {
-                    const para = steps[i].getElementsByTagName('para')[0];
-                    const stepText = para ? para.textContent : 'Passaggio non disponibile';
+                forrawd
+                for (let i = 0; i < paras.length; i++) {
+                    const stepText = paras[i].textContent || 'Contenuto non disponibile';
                     const li = document.createElement('li');
                     li.textContent = `${i + 1}. ${stepText}`;
                     stepList.appendChild(li);
