@@ -47,14 +47,21 @@
             font-size: 1.5em; 
             margin-bottom: 10px; 
         }
-        #procedure h3 { 
-            font-size: 1.2em; 
-            margin: 15px 0 10px; 
-            color: #333; 
-        }
         #procedure p#description { 
             font-style: italic; 
             margin-bottom: 15px; 
+        }
+        details { 
+            margin: 10px 0; 
+        }
+        summary { 
+            font-size: 1.2em; 
+            color: #333; 
+            cursor: pointer; 
+            padding: 5px; 
+        }
+        summary:hover { 
+            background: #f5f5f5; 
         }
         #procedure ol { 
             padding-left: 20px; 
@@ -106,14 +113,22 @@
         <div id="procedure">
             <h2 id="techname">Procedura di Smontaggio</h2>
             <p id="description"></p>
-            <h3>Procedura</h3>
-            <ol id="steps"></ol>
-            <h3>Attrezzi</h3>
-            <ul id="tools"></ul>
-            <h3>Consumabili</h3>
-            <ul id="consumables"></ul>
-            <h3>Parti di Ricambio</h3>
-            <ul id="spares"></ul>
+            <details open>
+                <summary>Attrezzi</summary>
+                <ul id="tools"></ul>
+            </details>
+            <details open>
+                <summary>Parti di Ricambio</summary>
+                <ul id="spares"></ul>
+            </details>
+            <details open>
+                <summary>Consumabili</summary>
+                <ul id="consumables"></ul>
+            </details>
+            <details open>
+                <summary>Procedura</summary>
+                <ol id="steps"></ol>
+            </details>
             <p id="error"></p>
         </div>
     </div>
@@ -288,14 +303,14 @@
                     addListItem(toolsList, supequip[id]);
                 }
 
-                // Aggiungi consumabili
-                for (let id in supplies) {
-                    addListItem(consumablesList, supplies[id]);
-                }
-
                 // Aggiungi parti di ricambio
                 for (let id in spares) {
                     addListItem(sparesList, spares[id]);
+                }
+
+                // Aggiungi consumabili
+                for (let id in supplies) {
+                    addListItem(consumablesList, supplies[id]);
                 }
             })
             .catch(error => {
