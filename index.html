@@ -7,8 +7,8 @@
         html, body { 
             margin: 0; 
             padding: 0; 
-            height: 100vh; /* Altezza totale della viewport */
-            overflow: hidden; /* Impedisce lo scroll del body */
+            height: 100vh; 
+            overflow: hidden; 
         }
         body { 
             font-family: Arial, sans-serif; 
@@ -18,34 +18,39 @@
             display: flex;
             width: 100%;
             height: 100%;
-            user-select: none; /* Impedisce la selezione del testo durante il trascinamento */
+            user-select: none; 
         }
         #viewer { 
-            width: 70%; /* Larghezza iniziale */
+            width: 70%; 
             height: 100%; 
             border: none; 
-            overflow: auto; /* Scroll indipendente */
-            min-width: 100px; /* Larghezza minima */
+            overflow: auto; 
+            min-width: 100px; 
         }
         #resizer {
             width: 5px;
             height: 100%;
             background: #ccc;
-            cursor: col-resize; /* Cursore per ridimensionamento orizzontale */
+            cursor: col-resize; 
         }
         #procedure { 
-            width: 30%; /* Larghezza iniziale */
+            width: 30%; 
             height: 100%; 
             padding: 20px; 
-            overflow-y: auto; /* Scroll verticale isolato */
+            overflow-y: auto; 
             background: #fff; 
             border-left: 2px solid #ccc; 
-            min-width: 100px; /* Larghezza minima */
+            min-width: 100px; 
             box-sizing: border-box;
         }
         #procedure h2 { 
             font-size: 1.5em; 
             margin-bottom: 10px; 
+        }
+        #procedure h3 { 
+            font-size: 1.2em; 
+            margin: 15px 0 10px; 
+            color: #333; 
         }
         #procedure p#description { 
             font-style: italic; 
@@ -54,9 +59,11 @@
         #procedure ol { 
             padding-left: 20px; 
         }
+        #procedure ul { 
+            padding-left: 40px; 
+        }
         #procedure li { 
             margin: 10px 0; 
-            list-style-type: none; 
         }
         #error { 
             color: red; 
@@ -82,6 +89,14 @@
         .step { 
             margin: 5px 0; 
         }
+        .figure { 
+            margin: 20px 0; 
+            text-align: center; 
+        }
+        .figure img { 
+            max-width: 100%; 
+            height: auto; 
+        }
     </style>
 </head>
 <body>
@@ -91,7 +106,14 @@
         <div id="procedure">
             <h2 id="techname">Procedura di Smontaggio</h2>
             <p id="description"></p>
+            <h3>Procedura</h3>
             <ol id="steps"></ol>
+            <h3>Attrezzi</h3>
+            <ul id="tools"></ul>
+            <h3>Consumabili</h3>
+            <ul id="consumables"></ul>
+            <h3>Parti di Ricambio</h3>
+            <ul id="spares"></ul>
             <p id="error"></p>
         </div>
     </div>
@@ -113,12 +135,29 @@
                 document.getElementById('techname').textContent = techname;
                 document.getElementById('description').textContent = infoname;
 
+                // Raccogli supequip, supplies e spares
+                const supequip = {};
+                const supequiNodes = xmlDoc.getElementsByTagName('supequi');
+                for (let supequi of supequiNodes) {
+                    const id = supequi.getAttribute('id');
+                    const nomen = supequi.getElementsByTagName('nomen')[0]?.textContent || 'Strumento non specificato';
+                    supequip[id] = nomen;
+                }
+
                 const supplies = {};
                 const supplyNodes = xmlDoc.getElementsByTagName('supply');
                 for (let supply of supplyNodes) {
                     const id = supply.getAttribute('id');
                     const nomen = supply.getElementsByTagName('nomen')[0]?.textContent || 'Oggetto non specificato';
                     supplies[id] = nomen;
+                }
+
+                const spares = {};
+                const spareNodes = xmlDoc.getElementsByTagName('spare');
+                for (let spare of spareNodes) {
+                    const id = spare.getAttribute('id');
+                    const nomen = spare.getElementsByTagName('nomen')[0]?.textContent || 'Ricambio non specificato';
+                    spares[id] = nomen;
                 }
 
                 function resolveReferences(node) {
@@ -129,8 +168,12 @@
                         } else if (child.nodeName === 'xref') {
                             const xrefId = child.getAttribute('xrefid');
                             const xrefType = child.getAttribute('xidtype');
-                            if (xrefType === 'supply' && supplies[xrefId]) {
+                            if (xrefType === 'supequip' && supequip[xrefId]) {
+                                text += supequip[xrefId];
+                            } else if (xrefType === 'supply' && supplies[xrefId]) {
                                 text += supplies[xrefId];
+                            } else if (xrefType === 'spares' && spares[xrefId]) {
+                                text += spares[xrefId];
                             } else if (xrefType === 'figure') {
                                 text += `Figura ${xrefId}`;
                             } else {
@@ -138,6 +181,12 @@
                             }
                         } else if (child.nodeName === 'refdm') {
                             text += '[Riferimento a modulo esterno]';
+                        } else if (child.nodeName === 'randlist') {
+                            const prefix = child.getAttribute('prefix') || '';
+                            const items = Array.from(child.getElementsByTagName('item')).map(item => 
+                                `${prefix ? prefix + ' ' : ''}${item.textContent}`
+                            );
+                            text += `<ul><li>${items.join('</li><li>')}</li></ul>`;
                         } else {
                             text += resolveReferences(child);
                         }
@@ -146,21 +195,41 @@
                 }
 
                 const stepList = document.getElementById('steps');
+                const toolsList = document.getElementById('tools');
+                const consumablesList = document.getElementById('consumables');
+                const sparesList = document.getElementById('spares');
                 const proced = xmlDoc.getElementsByTagName('proced')[0];
                 if (!proced) {
                     document.getElementById('error').textContent = 'Nessuna procedura trovata nel file XML';
                     return;
                 }
 
-                function addStep(text, className, prefix = '') {
+                function addStep(text, className, prefix = '', isSubStep = false) {
                     const li = document.createElement('li');
                     const div = document.createElement('div');
                     div.className = className;
-                    div.textContent = prefix ? `${prefix} ${text}` : text;
+                    div.innerHTML = prefix ? `${prefix} ${text}` : text;
                     li.appendChild(div);
-                    stepList.appendChild(li);
+                    if (isSubStep) {
+                        const parent = stepList.lastElementChild || stepList;
+                        let subList = parent.querySelector('ol');
+                        if (!subList) {
+                            subList = document.createElement('ol');
+                            parent.appendChild(subList);
+                        }
+                        subList.appendChild(li);
+                    } else {
+                        stepList.appendChild(li);
+                    }
                 }
 
+                function addListItem(list, text) {
+                    const li = document.createElement('li');
+                    li.textContent = text;
+                    list.appendChild(li);
+                }
+
+                // Avvisi di sicurezza
                 const warnings = proced.getElementsByTagName('warning');
                 for (let warning of warnings) {
                     const para = warning.getElementsByTagName('para')[0];
@@ -168,11 +237,12 @@
                     addStep(text, 'warning', 'Avvertimento:');
                 }
 
+                // Procedura principale
                 const mainfunc = proced.getElementsByTagName('mainfunc')[0];
                 if (mainfunc) {
                     const notes = mainfunc.getElementsByTagName('note');
-                    const steps = mainfunc.getElementsByTagName('step1');
-                    const cautions = mainfunc.getElementsByTagName('caution');
+                    const steps1 = mainfunc.getElementsByTagName('step1');
+                    const figures = mainfunc.getElementsByTagName('figure');
 
                     let stepCounter = 1;
 
@@ -182,18 +252,50 @@
                         addStep(text, 'note', 'Nota:');
                     }
 
-                    for (let step of steps) {
-                        const para = step.getElementsByTagName('para')[0];
+                    for (let step1 of steps1) {
+                        const para = step1.getElementsByTagName('para')[0];
                         const text = resolveReferences(para);
-                        addStep(`${stepCounter}. ${text}`, 'step');
+                        addStep(text, 'step', `${stepCounter}.`);
+
+                        const steps2 = step1.getElementsByTagName('step2');
+                        let subStepCounter = 'a';
+                        for (let step2 of steps2) {
+                            const subPara = step2.getElementsByTagName('para')[0];
+                            const subText = resolveReferences(subPara);
+                            addStep(subText, 'step', `${stepCounter}.${subStepCounter}`, true);
+                            subStepCounter = String.fromCharCode(subStepCounter.charCodeAt(0) + 1);
+                        }
                         stepCounter++;
                     }
 
-                    for (let caution of cautions) {
-                        const para = caution.getElementsByTagName('para')[0];
-                        const text = resolveReferences(para);
-                        addStep(text, 'caution', 'Cautela:');
+                    // Aggiungi figure
+                    for (let figure of figures) {
+                        const id = figure.getAttribute('id');
+                        const title = figure.getElementsByTagName('title')[0]?.textContent || 'Figura senza titolo';
+                        const graphic = figure.getElementsByTagName('graphic')[0];
+                        const imgSrc = graphic?.getAttribute('xlink:href') || '';
+                        const li = document.createElement('li');
+                        const div = document.createElement('div');
+                        div.className = 'figure';
+                        div.innerHTML = `<p>Figura ${id}: ${title}</p><img src="${imgSrc}" alt="${title}">`;
+                        li.appendChild(div);
+                        stepList.appendChild(li);
                     }
+                }
+
+                // Aggiungi attrezzi
+                for (let id in supequip) {
+                    addListItem(toolsList, supequip[id]);
+                }
+
+                // Aggiungi consumabili
+                for (let id in supplies) {
+                    addListItem(consumablesList, supplies[id]);
+                }
+
+                // Aggiungi parti di ricambio
+                for (let id in spares) {
+                    addListItem(sparesList, spares[id]);
                 }
             })
             .catch(error => {
@@ -215,9 +317,9 @@
             startX = e.clientX;
             startViewerWidth = viewer.offsetWidth;
             startProcedureWidth = procedure.offsetWidth;
-            document.addEventListener('mousemove', resize);
-            document.addEventListener('mouseup', stopResize, { once: true }); // `once: true` assicura che si esegua una sola volta
-            e.preventDefault(); // Impedisce la selezione del testo
+            document.addEventListener('mousemove', resize, { passive: false });
+            document.addEventListener('mouseup', stopResize, { once: true });
+            e.preventDefault();
         }
 
         function resize(e) {
@@ -229,7 +331,7 @@
 
             viewer.style.width = `${newViewerWidth}px`;
             procedure.style.width = `${newProcedureWidth}px`;
-            e.preventDefault(); // Impedisce interferenze durante il trascinamento
+            e.preventDefault();
         }
 
         function stopResize() {
@@ -239,7 +341,7 @@
 
         resizer.addEventListener('mousedown', startResize);
 
-        // Imposta le larghezze iniziali in pixel
+        // Imposta le larghezze iniziali
         window.addEventListener('load', () => {
             const containerWidth = container.offsetWidth;
             viewer.style.width = `${containerWidth * 0.7}px`;
