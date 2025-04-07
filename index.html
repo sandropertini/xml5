@@ -127,7 +127,7 @@
             </details>
             <details open>
                 <summary>Procedura</summary>
-                <ol id="steps"></ol>
+                <div id="steps"></div>
             </details>
             <p id="error"></p>
         </div>
@@ -219,37 +219,19 @@
                     return;
                 }
 
-                function addStep(text, className, prefix = '', isSubStep = false) {
-                    const li = document.createElement('li');
+                function addItem(container, text, className = '', prefix = '') {
                     const div = document.createElement('div');
                     div.className = className;
                     div.innerHTML = prefix ? `${prefix} ${text}` : text;
-                    li.appendChild(div);
-                    if (isSubStep) {
-                        const parent = stepList.lastElementChild || stepList;
-                        let subList = parent.querySelector('ol');
-                        if (!subList) {
-                            subList = document.createElement('ol');
-                            parent.appendChild(subList);
-                        }
-                        subList.appendChild(li);
-                    } else {
-                        stepList.appendChild(li);
-                    }
+                    container.appendChild(div);
                 }
 
-                function addListItem(list, text) {
-                    const li = document.createElement('li');
-                    li.textContent = text;
-                    list.appendChild(li);
-                }
-
-                // Avvisi di sicurezza
+                // Avvisi di sicurezza (non numerati)
                 const warnings = proced.getElementsByTagName('warning');
                 for (let warning of warnings) {
                     const para = warning.getElementsByTagName('para')[0];
                     const text = resolveReferences(para);
-                    addStep(text, 'warning', 'Avvertimento:');
+                    addItem(stepList, text, 'warning', 'Avvertimento:');
                 }
 
                 // Procedura principale
@@ -264,53 +246,57 @@
                     for (let note of notes) {
                         const para = note.getElementsByTagName('para')[0];
                         const text = resolveReferences(para);
-                        addStep(text, 'note', 'Nota:');
+                        addItem(stepList, text, 'note', 'Nota:');
                     }
 
                     for (let step1 of steps1) {
                         const para = step1.getElementsByTagName('para')[0];
                         const text = resolveReferences(para);
-                        addStep(text, 'step', `${stepCounter}.`);
+                        addItem(stepList, text, 'step', `${stepCounter}.`);
 
                         const steps2 = step1.getElementsByTagName('step2');
-                        let subStepCounter = 'a';
+                        let subStepCounter = 1;
                         for (let step2 of steps2) {
                             const subPara = step2.getElementsByTagName('para')[0];
                             const subText = resolveReferences(subPara);
-                            addStep(subText, 'step', `${stepCounter}.${subStepCounter}`, true);
-                            subStepCounter = String.fromCharCode(subStepCounter.charCodeAt(0) + 1);
+                            addItem(stepList, subText, 'step', `${stepCounter}.${subStepCounter}.`);
+                            subStepCounter++;
                         }
                         stepCounter++;
                     }
 
-                    // Aggiungi figure
+                    // Aggiungi figure (non numerate)
                     for (let figure of figures) {
                         const id = figure.getAttribute('id');
                         const title = figure.getElementsByTagName('title')[0]?.textContent || 'Figura senza titolo';
                         const graphic = figure.getElementsByTagName('graphic')[0];
                         const imgSrc = graphic?.getAttribute('xlink:href') || '';
-                        const li = document.createElement('li');
                         const div = document.createElement('div');
                         div.className = 'figure';
                         div.innerHTML = `<p>Figura ${id}: ${title}</p><img src="${imgSrc}" alt="${title}">`;
-                        li.appendChild(div);
-                        stepList.appendChild(li);
+                        stepList.appendChild(div);
                     }
                 }
 
                 // Aggiungi attrezzi
                 for (let id in supequip) {
-                    addListItem(toolsList, supequip[id]);
+                    const li = document.createElement('li');
+                    li.textContent = supequip[id];
+                    toolsList.appendChild(li);
                 }
 
                 // Aggiungi parti di ricambio
                 for (let id in spares) {
-                    addListItem(sparesList, spares[id]);
+                    const li = document.createElement('li');
+                    li.textContent = spares[id];
+                    sparesList.appendChild(li);
                 }
 
                 // Aggiungi consumabili
                 for (let id in supplies) {
-                    addListItem(consumablesList, supplies[id]);
+                    const li = document.createElement('li');
+                    li.textContent = supplies[id];
+                    consumablesList.appendChild(li);
                 }
             })
             .catch(error => {
