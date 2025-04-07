@@ -18,6 +18,7 @@
             display: flex;
             width: 100%;
             height: 100%;
+            user-select: none; /* Impedisce la selezione del testo durante il trascinamento */
         }
         #viewer { 
             width: 70%; /* Larghezza iniziale */
@@ -215,21 +216,20 @@
             startViewerWidth = viewer.offsetWidth;
             startProcedureWidth = procedure.offsetWidth;
             document.addEventListener('mousemove', resize);
-            document.addEventListener('mouseup', stopResize);
+            document.addEventListener('mouseup', stopResize, { once: true }); // `once: true` assicura che si esegua una sola volta
             e.preventDefault(); // Impedisce la selezione del testo
         }
 
         function resize(e) {
             const deltaX = e.clientX - startX;
             let newViewerWidth = startViewerWidth + deltaX;
-            let newProcedureWidth = startProcedureWidth - deltaX;
-
             const containerWidth = container.offsetWidth;
             newViewerWidth = Math.max(100, Math.min(newViewerWidth, containerWidth - 100));
-            newProcedureWidth = containerWidth - newViewerWidth;
+            const newProcedureWidth = containerWidth - newViewerWidth;
 
             viewer.style.width = `${newViewerWidth}px`;
             procedure.style.width = `${newProcedureWidth}px`;
+            e.preventDefault(); // Impedisce interferenze durante il trascinamento
         }
 
         function stopResize() {
