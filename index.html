@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <title>Smontaggio 3D con Procedura</title>
     <style>
-        body { 
+        html, body { 
             margin: 0; 
-            font-family: Arial, sans-serif; 
+            padding: 0; 
             height: 100vh; /* Altezza totale della viewport */
             overflow: hidden; /* Impedisce lo scroll del body */
+        }
+        body { 
+            font-family: Arial, sans-serif; 
+            display: flex; 
         }
         #container {
             display: flex;
@@ -21,14 +25,12 @@
             border: none; 
             overflow: auto; /* Scroll indipendente */
             min-width: 100px; /* Larghezza minima */
-            flex-shrink: 1; /* Permette il ridimensionamento */
         }
         #resizer {
             width: 5px;
             height: 100%;
             background: #ccc;
             cursor: col-resize; /* Cursore per ridimensionamento orizzontale */
-            flex-shrink: 0; /* Impedisce al resizer di ridursi */
         }
         #procedure { 
             width: 30%; /* Larghezza iniziale */
@@ -38,7 +40,6 @@
             background: #fff; 
             border-left: 2px solid #ccc; 
             min-width: 100px; /* Larghezza minima */
-            flex-shrink: 1; /* Permette il ridimensionamento */
             box-sizing: border-box;
         }
         #procedure h2 { 
@@ -205,21 +206,26 @@
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
         let isResizing = false;
+        let startX;
+        let startViewerWidth;
+        let startProcedureWidth;
 
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
+            startX = e.clientX;
+            startViewerWidth = viewer.offsetWidth;
+            startProcedureWidth = procedure.offsetWidth;
             e.preventDefault(); // Impedisce la selezione del testo
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
 
-            const containerRect = container.getBoundingClientRect();
-            const containerWidth = containerRect.width;
-            let newViewerWidth = e.clientX - containerRect.left;
-            let newProcedureWidth = containerWidth - newViewerWidth;
+            const deltaX = e.clientX - startX;
+            let newViewerWidth = startViewerWidth + deltaX;
+            let newProcedureWidth = startProcedureWidth - deltaX;
 
-            // Applica limiti minimi per entrambe le sezioni
+            const containerWidth = container.offsetWidth;
             newViewerWidth = Math.max(100, Math.min(newViewerWidth, containerWidth - 100));
             newProcedureWidth = containerWidth - newViewerWidth;
 
@@ -241,8 +247,8 @@
         // Gestisce il ridimensionamento della finestra
         window.addEventListener('resize', () => {
             const containerWidth = container.offsetWidth;
-            const currentViewerWidth = parseFloat(viewer.style.width);
-            const currentProcedureWidth = parseFloat(procedure.style.width);
+            const currentViewerWidth = parseFloat(viewer.style.width) || containerWidth * 0.7;
+            const currentProcedureWidth = parseFloat(procedure.style.width) || containerWidth * 0.3;
             const totalCurrentWidth = currentViewerWidth + currentProcedureWidth;
 
             if (totalCurrentWidth > 0) {
@@ -250,7 +256,6 @@
                 viewer.style.width = `${currentViewerWidth * scale}px`;
                 procedure.style.width = `${currentProcedureWidth * scale}px`;
             } else {
-                // Fallback per evitare errori
                 viewer.style.width = `${containerWidth * 0.7}px`;
                 procedure.style.width = `${containerWidth * 0.3}px`;
             }
