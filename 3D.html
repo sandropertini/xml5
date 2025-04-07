@@ -472,7 +472,7 @@
             const lightButton = document.getElementById('toggleLightButton');
             const lightSliderContainer = document.getElementById('lightSliderContainer');
             const rect = lightButton.getBoundingClientRect();
-            const offsetX = rect.width / 2 + 10; // Sposta più a destra
+            const offsetX = rect.width / 2 + 10;
             lightSliderContainer.style.left = `${rect.left + offsetX}px`;
         }
 
@@ -508,6 +508,10 @@
                     listItem.classList.add('active');
                     activeAnimationItem = listItem;
                 }
+
+                // Invia il messaggio al genitore con il nome dell'animazione
+                const animationName = actions[index].getClip().name;
+                window.parent.postMessage({ type: 'animationSelected', name: animationName }, '*');
             }
         }
 
@@ -562,6 +566,10 @@
                     if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                     listItems[currentIndex].classList.add('active');
                     activeAnimationItem = listItems[currentIndex];
+
+                    // Invia il messaggio al genitore per ogni animazione
+                    const animationName = action.getClip().name;
+                    window.parent.postMessage({ type: 'animationSelected', name: animationName }, '*');
 
                     mixer.addEventListener('finished', function onFinished(e) {
                         if (e.action === action) {
@@ -718,7 +726,7 @@
                     bomItem.className = 'bom-item';
                     const button = document.createElement('button');
                     button.className = 'bom-button';
-                    const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
+                    const partName = child.name && child.name !== '' ? child.name : `Parte ${index +1}`;
                     button.textContent = partName;
                     button.addEventListener('click', (e) => highlightPart(child, button, e.ctrlKey));
                     bomItem.appendChild(button);
@@ -818,7 +826,6 @@
                         return;
                     }
 
-                    // Forza l'applicazione anche dello stesso effetto
                     targetObjects.forEach(part => {
                         part.traverse(child => {
                             if (child.isMesh) {
@@ -840,7 +847,7 @@
                                 } else if (mode === 'solid') {
                                     newMaterial = originalMaterials.get(child).clone();
                                 }
-                                child.material.dispose(); // Libera la memoria del vecchio materiale
+                                child.material.dispose();
                                 child.material = newMaterial;
                                 modifiedMaterials.set(child, newMaterial);
                             }
