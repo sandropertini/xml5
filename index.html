@@ -35,11 +35,11 @@
         }
         #procedure li { 
             margin: 10px 0; 
+            list-style-type: none; /* Rimuove i numeri automatici per personalizzazione */
         }
         #error { 
             color: red; 
         }
-        /* Stili per formattazione specifica */
         .note { 
             background: #f9f9d9; 
             padding: 10px; 
@@ -114,7 +114,6 @@
                         }
                         resolvedText = resolvedText.replace(`<xref xidtype="${xrefType}" xrefid="${xrefId}"/>`, replacement);
                     }
-                    // Semplice gestione di <refdm> (può essere espansa)
                     const refdms = xmlNode.getElementsByTagName('refdm');
                     for (let refdm of refdms) {
                         resolvedText = resolvedText.replace(/<refdm>[\s\S]*?<\/refdm>/, '[Riferimento a modulo esterno]');
@@ -131,21 +130,21 @@
                 }
 
                 // Funzione per aggiungere un elemento alla lista
-                function addStep(text, className) {
+                function addStep(text, className, prefix = '') {
                     const li = document.createElement('li');
                     const div = document.createElement('div');
                     div.className = className;
-                    div.innerHTML = text; // Usa innerHTML per mantenere eventuali formattazioni
+                    div.innerHTML = prefix ? `${prefix} ${text}` : text;
                     li.appendChild(div);
                     stepList.appendChild(li);
                 }
 
                 // Prelreqs: Warnings
                 const warnings = proced.getElementsByTagName('warning');
-                for (let i = 0; i < warnings.length; i++) {
-                    const para = warnings[i].getElementsByTagName('para')[0];
+                for (let warning of warnings) {
+                    const para = warning.getElementsByTagName('para')[0];
                     const text = resolveReferences(para.textContent, para);
-                    addStep(`${i + 1}. ${text}`, 'warning');
+                    addStep(text, 'warning', 'Avvertimento:');
                 }
 
                 // Mainfunc: Note, Steps, Cautions
@@ -155,14 +154,13 @@
                     const steps = mainfunc.getElementsByTagName('step1');
                     const cautions = mainfunc.getElementsByTagName('caution');
 
-                    let stepCounter = warnings.length + 1;
+                    let stepCounter = 1;
 
                     // Note
                     for (let note of notes) {
                         const para = note.getElementsByTagName('para')[0];
                         const text = resolveReferences(para.textContent, para);
-                        addStep(`${stepCounter}. ${text}`, 'note');
-                        stepCounter++;
+                        addStep(text, 'note', 'Nota:');
                     }
 
                     // Steps
@@ -177,8 +175,7 @@
                     for (let caution of cautions) {
                         const para = caution.getElementsByTagName('para')[0];
                         const text = resolveReferences(para.textContent, para);
-                        addStep(`${stepCounter}. ${text}`, 'caution');
-                        stepCounter++;
+                        addStep(text, 'caution', 'Cautela:');
                     }
                 }
             })
