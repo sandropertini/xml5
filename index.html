@@ -95,10 +95,10 @@
         }
         .step { 
             margin: 5px 0; 
-            cursor: pointer; /* Aggiunto per indicare cliccabilità */
+            cursor: pointer; 
         }
         .step:hover { 
-            background: #f0f0f0; /* Feedback visivo al passaggio del mouse */
+            background: #f0f0f0; 
         }
         .figure { 
             margin: 20px 0; 
@@ -138,6 +138,14 @@
     </div>
 
     <script>
+        // Stato dell'iframe
+        let iframeReady = false;
+        const iframe = document.getElementById('viewer');
+        iframe.addEventListener('load', () => {
+            iframeReady = true;
+            console.log('Iframe caricato');
+        });
+
         fetch('DEMO.xml')
             .then(response => {
                 if (!response.ok) {
@@ -154,7 +162,6 @@
                 document.getElementById('techname').textContent = techname;
                 document.getElementById('description').textContent = infoname;
 
-                // Raccogli supequip, supplies e spares
                 const supequip = {};
                 const supequiNodes = xmlDoc.getElementsByTagName('supequi');
                 for (let supequi of supequiNodes) {
@@ -227,19 +234,21 @@
                     const div = document.createElement('div');
                     div.className = className;
                     div.innerHTML = prefix ? `${prefix} ${text}` : text;
-                    // Se è uno step, aggiungi un evento clic
                     if (className === 'step') {
                         div.addEventListener('click', () => {
                             const stepNumber = prefix.replace('.', '').trim(); // Es. "1" o "3.2"
                             const animationName = `Step${stepNumber}`; // Es. "Step1" o "Step3.2"
-                            const iframe = document.getElementById('viewer');
-                            iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
+                            if (iframeReady) {
+                                iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
+                                console.log(`Invio messaggio: ${animationName}`);
+                            } else {
+                                console.log('Iframe non ancora pronto');
+                            }
                         });
                     }
                     container.appendChild(div);
                 }
 
-                // Avvisi di sicurezza (non numerati)
                 const warnings = proced.getElementsByTagName('warning');
                 for (let warning of warnings) {
                     const para = warning.getElementsByTagName('para')[0];
@@ -247,7 +256,6 @@
                     addItem(stepList, text, 'warning', 'Avvertimento:');
                 }
 
-                // Procedura principale
                 const mainfunc = proced.getElementsByTagName('mainfunc')[0];
                 if (mainfunc) {
                     const notes = mainfunc.getElementsByTagName('note');
@@ -278,7 +286,6 @@
                         stepCounter++;
                     }
 
-                    // Aggiungi figure (non numerate)
                     for (let figure of figures) {
                         const id = figure.getAttribute('id');
                         const title = figure.getElementsByTagName('title')[0]?.textContent || 'Figura senza titolo';
@@ -291,21 +298,18 @@
                     }
                 }
 
-                // Aggiungi attrezzi
                 for (let id in supequip) {
                     const li = document.createElement('li');
                     li.textContent = supequip[id];
                     toolsList.appendChild(li);
                 }
 
-                // Aggiungi parti di ricambio
                 for (let id in spares) {
                     const li = document.createElement('li');
                     li.textContent = spares[id];
                     sparesList.appendChild(li);
                 }
 
-                // Aggiungi consumabili
                 for (let id in supplies) {
                     const li = document.createElement('li');
                     li.textContent = supplies[id];
@@ -317,7 +321,6 @@
                 document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
             });
 
-        // Logica per il ridimensionamento orizzontale
         const container = document.getElementById('container');
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
@@ -355,14 +358,12 @@
 
         resizer.addEventListener('mousedown', startResize);
 
-        // Imposta le larghezze iniziali
         window.addEventListener('load', () => {
             const containerWidth = container.offsetWidth;
             viewer.style.width = `${containerWidth * 0.7}px`;
             procedure.style.width = `${containerWidth * 0.3}px`;
         });
 
-        // Gestisce il ridimensionamento della finestra
         window.addEventListener('resize', () => {
             const containerWidth = container.offsetWidth;
             const currentViewerWidth = parseFloat(viewer.style.width) || containerWidth * 0.7;
