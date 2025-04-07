@@ -21,6 +21,7 @@
             border: none; 
             overflow: auto; /* Scroll indipendente */
             min-width: 100px; /* Larghezza minima */
+            flex-shrink: 1; /* Permette il ridimensionamento */
         }
         #resizer {
             width: 5px;
@@ -37,6 +38,7 @@
             background: #fff; 
             border-left: 2px solid #ccc; 
             min-width: 100px; /* Larghezza minima */
+            flex-shrink: 1; /* Permette il ridimensionamento */
             box-sizing: border-box;
         }
         #procedure h2 { 
@@ -213,38 +215,45 @@
             if (!isResizing) return;
 
             const containerRect = container.getBoundingClientRect();
-            const newViewerWidth = e.clientX - containerRect.left;
-            const newProcedureWidth = containerRect.right - e.clientX;
+            const containerWidth = containerRect.width;
+            let newViewerWidth = e.clientX - containerRect.left;
+            let newProcedureWidth = containerWidth - newViewerWidth;
 
-            // Applica le nuove larghezze solo se rispettano i limiti minimi
-            if (newViewerWidth >= 100 && newProcedureWidth >= 100) {
-                viewer.style.width = `${newViewerWidth}px`;
-                procedure.style.width = `${newProcedureWidth}px`;
-            }
+            // Applica limiti minimi per entrambe le sezioni
+            newViewerWidth = Math.max(100, Math.min(newViewerWidth, containerWidth - 100));
+            newProcedureWidth = containerWidth - newViewerWidth;
+
+            viewer.style.width = `${newViewerWidth}px`;
+            procedure.style.width = `${newProcedureWidth}px`;
         });
 
         document.addEventListener('mouseup', () => {
             isResizing = false;
         });
 
-        // Imposta le larghezze iniziali in pixel per coerenza
+        // Imposta le larghezze iniziali in pixel
         window.addEventListener('load', () => {
             const containerWidth = container.offsetWidth;
             viewer.style.width = `${containerWidth * 0.7}px`;
             procedure.style.width = `${containerWidth * 0.3}px`;
         });
 
-        // Aggiorna le larghezze proporzionalmente al ridimensionamento della finestra
+        // Gestisce il ridimensionamento della finestra
         window.addEventListener('resize', () => {
             const containerWidth = container.offsetWidth;
-            const currentViewerWidth = parseFloat(viewer.style.width) || containerWidth * 0.7;
-            const currentProcedureWidth = parseFloat(procedure.style.width) || containerWidth * 0.3;
+            const currentViewerWidth = parseFloat(viewer.style.width);
+            const currentProcedureWidth = parseFloat(procedure.style.width);
             const totalCurrentWidth = currentViewerWidth + currentProcedureWidth;
 
-            // Scala proporzionalmente per adattarsi alla nuova larghezza del contenitore
-            const scale = containerWidth / totalCurrentWidth;
-            viewer.style.width = `${currentViewerWidth * scale}px`;
-            procedure.style.width = `${currentProcedureWidth * scale}px`;
+            if (totalCurrentWidth > 0) {
+                const scale = containerWidth / totalCurrentWidth;
+                viewer.style.width = `${currentViewerWidth * scale}px`;
+                procedure.style.width = `${currentProcedureWidth * scale}px`;
+            } else {
+                // Fallback per evitare errori
+                viewer.style.width = `${containerWidth * 0.7}px`;
+                procedure.style.width = `${containerWidth * 0.3}px`;
+            }
         });
     </script>
 </body>
