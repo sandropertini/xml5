@@ -95,10 +95,6 @@
         }
         .step { 
             margin: 5px 0; 
-            cursor: pointer; 
-        }
-        .step:hover { 
-            background: #f0f0f0; 
         }
         .figure { 
             margin: 20px 0; 
@@ -138,188 +134,175 @@
     </div>
 
     <script>
-        const viewerIframe = document.getElementBy Id('viewer');
+        fetch('DEMO.xml')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('File XML non trovato o non accessibile');
+                }
+                return response.text();
+            })
+            .then(data => {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data, 'text/xml');
 
-        // Aspetta che l'iframe sia caricato prima di processare l'XML
-        viewerIframe.addEventListener('load', () => {
-            fetch('DEMO.xml')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('File XML non trovato o non accessibile');
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(data, 'text/xml');
+                const techname = xmlDoc.getElementsByTagName('techname')[0]?.textContent || 'Nome procedura non disponibile';
+                const infoname = xmlDoc.getElementsByTagName('infoname')[0]?.textContent || 'Descrizione non disponibile';
+                document.getElementById('techname').textContent = techname;
+                document.getElementById('description').textContent = infoname;
 
-                    const techname = xmlDoc.getElementsByTagName('techname')[0]?.textContent || 'Nome procedura non disponibile';
-                    const infoname = xmlDoc.getElementsByTagName('infoname')[0]?.textContent || 'Descrizione non disponibile';
-                    document.getElementById('techname').textContent = techname;
-                    document.getElementById('description').textContent = infoname;
+                // Raccogli supequip, supplies e spares
+                const supequip = {};
+                const supequiNodes = xmlDoc.getElementsByTagName('supequi');
+                for (let supequi of supequiNodes) {
+                    const id = supequi.getAttribute('id');
+                    const nomen = supequi.getElementsByTagName('nomen')[0]?.textContent || 'Strumento non specificato';
+                    supequip[id] = nomen;
+                }
 
-                    // Raccogli supequip, supplies e spares
-                    const supequip = {};
-                    const supequiNodes = xmlDoc.getElementsByTagName('supequi');
-                    for (let supequi of supequiNodes) {
-                        const id = supequi.getAttribute('id');
-                        const nomen = supequi.getElementsByTagName('nomen')[0]?.textContent || 'Strumento non specificato';
-                        supequip[id] = nomen;
-                    }
+                const supplies = {};
+                const supplyNodes = xmlDoc.getElementsByTagName('supply');
+                for (let supply of supplyNodes) {
+                    const id = supply.getAttribute('id');
+                    const nomen = supply.getElementsByTagName('nomen')[0]?.textContent || 'Oggetto non specificato';
+                    supplies[id] = nomen;
+                }
 
-                    const supplies = {};
-                    const supplyNodes = xmlDoc.getElementsByTagName('supply');
-                    for (let supply of supplyNodes) {
-                        const id = supply.getAttribute('id');
-                        const nomen = supply.getElementsByTagName('nomen')[0]?.textContent || 'Oggetto non specificato';
-                        supplies[id] = nomen;
-                    }
+                const spares = {};
+                const spareNodes = xmlDoc.getElementsByTagName('spare');
+                for (let spare of spareNodes) {
+                    const id = spare.getAttribute('id');
+                    const nomen = spare.getElementsByTagName('nomen')[0]?.textContent || 'Ricambio non specificato';
+                    spares[id] = nomen;
+                }
 
-                    const spares = {};
-                    const spareNodes = xmlDoc.getElementsByTagName('spare');
-                    for (let spare of spareNodes) {
-                        const id = spare.getAttribute('id');
-                        const nomen = spare.getElementsByTagName('nomen')[0]?.textContent || 'Ricambio non specificato';
-                        spares[id] = nomen;
-                    }
-
-                    function resolveReferences(node) {
-                        let text = '';
-                        for (let child of node.childNodes) {
-                            if (child.nodeType === Node.TEXT_NODE) {
-                                text += child.textContent;
-                            } else if (child.nodeName === 'xref') {
-                                const xrefId = child.getAttribute('xrefid');
-                                const xrefType = child.getAttribute('xidtype');
-                                if (xrefType === 'supequip' && supequip[xrefId]) {
-                                    text += supequip[xrefId];
-                                } else if (xrefType === 'supply' && supplies[xrefId]) {
-                                    text += supplies[xrefId];
-                                } else if (xrefType === 'spares' && spares[xrefId]) {
-                                    text += spares[xrefId];
-                                } else if (xrefType === 'figure') {
-                                    text += `Figura ${xrefId}`;
-                                } else {
-                                    text += xrefId;
-                                }
-                            } else if (child.nodeName === 'refdm') {
-                                text += '[Riferimento a modulo esterno]';
-                            } else if (child.nodeName === 'randlist') {
-                                const prefix = child.getAttribute('prefix') || '';
-                                const items = Array.from(child.getElementsByTagName('item')).map(item => 
-                                    `${prefix ? prefix + ' ' : ''}${item.textContent}`
-                                );
-                                text += `<ul><li>${items.join('</li><li>')}</li></ul>`;
+                function resolveReferences(node) {
+                    let text = '';
+                    for (let child of node.childNodes) {
+                        if (child.nodeType === Node.TEXT_NODE) {
+                            text += child.textContent;
+                        } else if (child.nodeName === 'xref') {
+                            const xrefId = child.getAttribute('xrefid');
+                            const xrefType = child.getAttribute('xidtype');
+                            if (xrefType === 'supequip' && supequip[xrefId]) {
+                                text += supequip[xrefId];
+                            } else if (xrefType === 'supply' && supplies[xrefId]) {
+                                text += supplies[xrefId];
+                            } else if (xrefType === 'spares' && spares[xrefId]) {
+                                text += spares[xrefId];
+                            } else if (xrefType === 'figure') {
+                                text += `Figura ${xrefId}`;
                             } else {
-                                text += resolveReferences(child);
+                                text += xrefId;
                             }
+                        } else if (child.nodeName === 'refdm') {
+                            text += '[Riferimento a modulo esterno]';
+                        } else if (child.nodeName === 'randlist') {
+                            const prefix = child.getAttribute('prefix') || '';
+                            const items = Array.from(child.getElementsByTagName('item')).map(item => 
+                                `${prefix ? prefix + ' ' : ''}${item.textContent}`
+                            );
+                            text += `<ul><li>${items.join('</li><li>')}</li></ul>`;
+                        } else {
+                            text += resolveReferences(child);
                         }
-                        return text || 'Contenuto non disponibile';
                     }
+                    return text || 'Contenuto non disponibile';
+                }
 
-                    const stepList = document.getElementById('steps');
-                    const toolsList = document.getElementById('tools');
-                    const consumablesList = document.getElementById('consumables');
-                    const sparesList = document.getElementById('spares');
-                    const proced = xmlDoc.getElementsByTagName('proced')[0];
-                    if (!proced) {
-                        document.getElementById('error').textContent = 'Nessuna procedura trovata nel file XML';
-                        return;
-                    }
+                const stepList = document.getElementById('steps');
+                const toolsList = document.getElementById('tools');
+                const consumablesList = document.getElementById('consumables');
+                const sparesList = document.getElementById('spares');
+                const proced = xmlDoc.getElementsByTagName('proced')[0];
+                if (!proced) {
+                    document.getElementById('error').textContent = 'Nessuna procedura trovata nel file XML';
+                    return;
+                }
 
-                    function addItem(container, text, className = '', prefix = '', animationId = null) {
-                        const div = document.createElement('div');
-                        div.className = className;
-                        div.innerHTML = prefix ? `${prefix} ${text}` : text;
-                        if (animationId) {
-                            div.addEventListener('click', () => {
-                                console.log(`Tentativo di riprodurre animazione: ${animationId}`);
-                                viewerIframe.contentWindow.postMessage({ action: 'playAnimation', animation: animationId }, '*');
-                            });
-                        }
-                        container.appendChild(div);
-                    }
+                function addItem(container, text, className = '', prefix = '') {
+                    const div = document.createElement('div');
+                    div.className = className;
+                    div.innerHTML = prefix ? `${prefix} ${text}` : text;
+                    container.appendChild(div);
+                }
 
-                    // Avvisi di sicurezza (non numerati)
-                    const warnings = proced.getElementsByTagName('warning');
-                    for (let warning of warnings) {
-                        const para = warning.getElementsByTagName('para')[0];
+                // Avvisi di sicurezza (non numerati)
+                const warnings = proced.getElementsByTagName('warning');
+                for (let warning of warnings) {
+                    const para = warning.getElementsByTagName('para')[0];
+                    const text = resolveReferences(para);
+                    addItem(stepList, text, 'warning', 'Avvertimento:');
+                }
+
+                // Procedura principale
+                const mainfunc = proced.getElementsByTagName('mainfunc')[0];
+                if (mainfunc) {
+                    const notes = mainfunc.getElementsByTagName('note');
+                    const steps1 = mainfunc.getElementsByTagName('step1');
+                    const figures = mainfunc.getElementsByTagName('figure');
+
+                    let stepCounter = 1;
+
+                    for (let note of notes) {
+                        const para = note.getElementsByTagName('para')[0];
                         const text = resolveReferences(para);
-                        addItem(stepList, text, 'warning', 'Avvertimento:');
+                        addItem(stepList, text, 'note', 'Nota:');
                     }
 
-                    // Procedura principale
-                    const mainfunc = proced.getElementsByTagName('mainfunc')[0];
-                    if (mainfunc) {
-                        const notes = mainfunc.getElementsByTagName('note');
-                        const steps1 = mainfunc.getElementsByTagName('step1');
-                        const figures = mainfunc.getElementsByTagName('figure');
+                    for (let step1 of steps1) {
+                        const para = step1.getElementsByTagName('para')[0];
+                        const text = resolveReferences(para);
+                        addItem(stepList, text, 'step', `${stepCounter}.`);
 
-                        let stepCounter = 1;
-
-                        for (let note of notes) {
-                            const para = note.getElementsByTagName('para')[0];
-                            const text = resolveReferences(para);
-                            addItem(stepList, text, 'note', 'Nota:');
+                        const steps2 = step1.getElementsByTagName('step2');
+                        let subStepCounter = 1;
+                        for (let step2 of steps2) {
+                            const subPara = step2.getElementsByTagName('para')[0];
+                            const subText = resolveReferences(subPara);
+                            addItem(stepList, subText, 'step', `${stepCounter}.${subStepCounter}.`);
+                            subStepCounter++;
                         }
-
-                        for (let step1 of steps1) {
-                            const para = step1.getElementsByTagName('para')[0];
-                            const text = resolveReferences(para);
-                            const stepId = `Step${stepCounter}`;
-                            addItem(stepList, text, 'step', `${stepCounter}.`, stepId);
-
-                            const steps2 = step1.getElementsByTagName('step2');
-                            let subStepCounter = 1;
-                            for (let step2 of steps2) {
-                                const subPara = step2.getElementsByTagName('para')[0];
-                                const subText = resolveReferences(subPara);
-                                const subStepId = `Step${stepCounter}.${subStepCounter}`;
-                                addItem(stepList, subText, 'step', `${stepCounter}.${subStepCounter}.`, subStepId);
-                                subStepCounter++;
-                            }
-                            stepCounter++;
-                        }
-
-                        // Aggiungi figure (non numerate)
-                        for (let figure of figures) {
-                            const id = figure.getAttribute('id');
-                            const title = figure.getElementsByTagName('title')[0]?.textContent || 'Figura senza titolo';
-                            const graphic = figure.getElementsByTagName('graphic')[0];
-                            const imgSrc = graphic?.getAttribute('xlink:href') || '';
-                            const div = document.createElement('div');
-                            div.className = 'figure';
-                            div.innerHTML = `<p>Figura ${id}: ${title}</p><img src="${imgSrc}" alt="${title}">`;
-                            stepList.appendChild(div);
-                        }
+                        stepCounter++;
                     }
 
-                    // Aggiungi attrezzi
-                    for (let id in supequip) {
-                        const li = document.createElement('li');
-                        li.textContent = supequip[id];
-                        toolsList.appendChild(li);
+                    // Aggiungi figure (non numerate)
+                    for (let figure of figures) {
+                        const id = figure.getAttribute('id');
+                        const title = figure.getElementsByTagName('title')[0]?.textContent || 'Figura senza titolo';
+                        const graphic = figure.getElementsByTagName('graphic')[0];
+                        const imgSrc = graphic?.getAttribute('xlink:href') || '';
+                        const div = document.createElement('div');
+                        div.className = 'figure';
+                        div.innerHTML = `<p>Figura ${id}: ${title}</p><img src="${imgSrc}" alt="${title}">`;
+                        stepList.appendChild(div);
                     }
+                }
 
-                    // Aggiungi parti di ricambio
-                    for (let id in spares) {
-                        const li = document.createElement('li');
-                        li.textContent = spares[id];
-                        sparesList.appendChild(li);
-                    }
+                // Aggiungi attrezzi
+                for (let id in supequip) {
+                    const li = document.createElement('li');
+                    li.textContent = supequip[id];
+                    toolsList.appendChild(li);
+                }
 
-                    // Aggiungi consumabili
-                    for (let id in supplies) {
-                        const li = document.createElement('li');
-                        li.textContent = supplies[id];
-                        consumablesList.appendChild(li);
-                    }
-                })
-                .catch(error => {
-                    console.error('Errore:', error);
-                    document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
-                });
-        });
+                // Aggiungi parti di ricambio
+                for (let id in spares) {
+                    const li = document.createElement('li');
+                    li.textContent = spares[id];
+                    sparesList.appendChild(li);
+                }
+
+                // Aggiungi consumabili
+                for (let id in supplies) {
+                    const li = document.createElement('li');
+                    li.textContent = supplies[id];
+                    consumablesList.appendChild(li);
+                }
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
+            });
 
         // Logica per il ridimensionamento orizzontale
         const container = document.getElementById('container');
