@@ -430,7 +430,8 @@
         const ambientLight = new THREE.HemisphereLight(0xffffff, 0x444444);
         ambientLight.position.set(0, 20, 0);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff AscendingLight.position.set(0, 20, 10);
+        const directionalLight = new THREE.DirectionalLight(0xffffff);
+        directionalLight.position.set(0, 20, 10);
         scene.add(directionalLight);
 
         let mixer;
@@ -461,7 +462,7 @@
             if (!animationContainer.classList.contains('collapsed')) {
                 bomContainer.style.top = `${animationTop + animationContainer.offsetHeight + margin}px`;
             } else {
-                bomContainer.style.top = `${animationTop + 40 + margin}px`;
+                bomContainer.style.top = `${animationTop + 40 + margin}px`; // 40px per l'etichetta
             }
         }
 
@@ -501,19 +502,11 @@
         }
 
         function playAnimationByName(animationName) {
-            if (!mixer || !actions.length) {
-                console.log('Mixer o actions non inizializzati');
-                return;
-            }
-
+            if (!mixer || !actions.length) return;
             const index = actions.findIndex(action => action.getClip().name === animationName);
             if (index !== -1) {
                 const listItems = animationList.getElementsByTagName('li');
-                const listItem = listItems[index];
-                console.log(`Riproduco: ${animationName} (indice ${index})`);
-                playAnimation(index, listItem);
-            } else {
-                console.log(`Animazione ${animationName} non trovata. Animazioni disponibili:`, actions.map(a => a.getClip().name));
+                playAnimation(index, listItems[index]);
             }
         }
 
@@ -568,7 +561,6 @@
                         }
                     });
                 }
-
                 playNext();
             }
         }
@@ -616,9 +608,7 @@
             visibilityMap.set(part, newState);
 
             part.traverse((child) => {
-                if (child.isMesh) {
-                    child.visible = !newState;
-                }
+                if (child.isMesh) child.visible = !newState;
             });
 
             toggleButton.classList.toggle('hidden', newState);
@@ -628,9 +618,7 @@
         function hideSelectedParts() {
             selectedParts.forEach(part => {
                 const toggleButton = buttonMap.get(part).nextElementSibling;
-                if (!visibilityMap.get(part)) {
-                    toggleVisibility(part, toggleButton);
-                }
+                if (!visibilityMap.get(part)) toggleVisibility(part, toggleButton);
             });
             selectedParts.forEach(part => {
                 part.traverse(child => {
@@ -645,7 +633,6 @@
 
         function onMouseClick(event) {
             event.preventDefault();
-
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
@@ -653,9 +640,7 @@
             if (intersects.length > 0) {
                 const intersectedObject = intersects[0].object;
                 let parent = intersectedObject;
-                while (parent.parent && parent.parent !== model) {
-                    parent = parent.parent;
-                }
+                while (parent.parent && parent.parent !== model) parent = parent.parent;
                 if (modelParts.includes(parent)) {
                     const button = buttonMap.get(parent);
                     highlightPart(parent, button, event.ctrlKey);
@@ -694,17 +679,8 @@
 
                 const stepAnimations = gltf.animations
                     .filter(clip => /^Step\d+(\.\d+)?$/.test(clip.name))
-                    .map(clip => ({
-                        clip,
-                        name: clip.name
-                    }))
-                    .sort((a, b) => {
-                        const numA = parseFloat(a.name.replace('Step', ''));
-                        const numB = parseFloat(b.name.replace('Step', ''));
-                        return numA - numB;
-                    });
-
-                console.log('Animazioni ordinate:', stepAnimations.map(a => a.name));
+                    .map(clip => ({ clip, name: clip.name }))
+                    .sort((a, b) => parseFloat(a.name.replace('Step', '')) - parseFloat(b.name.replace('Step', '')));
 
                 stepAnimations.forEach((anim, index) => {
                     const action = mixer.clipAction(anim.clip);
@@ -772,9 +748,7 @@
 
                 document.getElementById('showAllButton').addEventListener('click', () => {
                     visibilityMap.forEach((isHidden, part) => {
-                        if (isHidden) {
-                            toggleVisibility(part, buttonMap.get(part).nextElementSibling);
-                        }
+                        if (isHidden) toggleVisibility(part, buttonMap.get(part).nextElementSibling);
                     });
                 });
 
@@ -789,9 +763,7 @@
                 });
 
                 document.addEventListener('keydown', (e) => {
-                    if (e.key.toLowerCase() === 'h' && selectedParts.size > 0) {
-                        hideSelectedParts();
-                    }
+                    if (e.key.toLowerCase() === 'h' && selectedParts.size > 0) hideSelectedParts();
                 });
 
                 const viewModeSelect = document.getElementById('viewModeSelect');
@@ -846,16 +818,12 @@
                 const themeSelect = document.getElementById('themeSelect');
                 themeSelect.addEventListener('change', (e) => {
                     const theme = e.target.value;
-                    if (theme === 'dark') {
-                        document.body.classList.add('dark-theme');
-                        scene.background = new THREE.Color(0x1a1a1a);
-                    } else {
-                        document.body.classList.remove('dark-theme');
-                        scene.background = new THREE.Color(0xdddddd);
-                    }
+                    document.body.classList.toggle('dark-theme', theme === 'dark');
+                    scene.background = new THREE.Color(theme === 'dark' ? 0x1a1a1a : 0xdddddd);
                 });
 
                 window.addEventListener('dblclick', zoomToSelection);
+                window.addEventListener('click', onMouseClick);
 
                 updatePanelPositions();
             },
@@ -875,14 +843,8 @@
             });
         });
 
-        window.addEventListener('click', onMouseClick);
-
         window.addEventListener('message', (event) => {
-            console.log('Messaggio ricevuto:', event.data);
-            if (event.data.type === 'playAnimation') {
-                const animationName = event.data.name;
-                playAnimationByName(animationName);
-            }
+            if (event.data.type === 'playAnimation') playAnimationByName(event.data.name);
         });
 
         const clock = new THREE.Clock();
