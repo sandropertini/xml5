@@ -16,10 +16,10 @@
         
         #animationContainer { 
             position: absolute; 
-            top: 10px; 
             left: 10px; 
             z-index: 100; 
             width: 250px;
+            /* 'top' sarà gestito dinamicamente via JS */
         }
         #bomContainer { 
             position: absolute; 
@@ -116,10 +116,10 @@
         
         #controlsBar {
             position: absolute;
-            top: 10px;
+            top: 10px; /* Fissato in alto */
             left: 50%;
             transform: translateX(-50%);
-            z-index: 100;
+            z-index: 101; /* Sopra i pannelli */
             background: rgba(255, 255, 255, 0.95);
             padding: 8px;
             border-radius: 50px;
@@ -246,7 +246,7 @@
 
         #lightSliderContainer {
             position: absolute;
-            top: 60px;
+            top: 70px; /* Spostato sotto il controlsBar */
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
@@ -340,6 +340,17 @@
     </style>
 </head>
 <body>
+    <div id="controlsBar">
+        <button id="playAllButton" title="Esegui tutte">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button id="pauseButton" title="Pausa">
+            <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
+        </button>
+        <button id="stopButton" title="Ferma">
+            <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+        </button>
+    </div>
     <div id="animationContainer">
         <div class="panel" id="animationPanel">
             <div class="panel-header">Animazioni</div>
@@ -356,17 +367,6 @@
                 <div id="bomList"></div>
             </div>
         </div>
-    </div>
-    <div id="controlsBar">
-        <button id="playAllButton" title="Esegui tutte">
-            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-        <button id="pauseButton" title="Pausa">
-            <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
-        </button>
-        <button id="stopButton" title="Ferma">
-            <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-        </button>
     </div>
     <div id="topControls">
         <button id="zoomInButton" title="Zoom In">+</button>
@@ -429,13 +429,20 @@
         let selectedParts = new Set();
         let originalMaterials = new Map();
 
-        // Funzione per aggiornare dinamicamente la posizione del pannello BOM
-        function updateBomPosition() {
+        // Funzione per aggiornare dinamicamente la posizione dei pannelli
+        function updatePanelPositions() {
+            const controlsBar = document.getElementById('controlsBar');
             const animationContainer = document.getElementById('animationContainer');
             const bomContainer = document.getElementById('bomContainer');
+            const margin = 10;
+
+            // Posiziona animationContainer sotto controlsBar
+            const controlsBarHeight = controlsBar.offsetHeight;
+            animationContainer.style.top = `${controlsBarHeight + margin + 10}px`; // 10px è il top iniziale di controlsBar
+
+            // Posiziona bomContainer sotto animationContainer
             const animationHeight = animationContainer.offsetHeight;
-            const margin = 10; // Spazio tra i pannelli
-            bomContainer.style.top = `${animationHeight + margin + 10}px`; // 10px è il 'top' iniziale di animationContainer
+            bomContainer.style.top = `${controlsBarHeight + animationHeight + (2 * margin) + 10}px`;
         }
 
         function applyPreviousAnimations(index) {
@@ -808,8 +815,8 @@
 
                 window.addEventListener('dblclick', zoomToSelection);
 
-                // Aggiorna la posizione del pannello BOM dopo il caricamento iniziale
-                updateBomPosition();
+                // Aggiorna la posizione dei pannelli dopo il caricamento
+                updatePanelPositions();
             },
             function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% caricato');
@@ -824,8 +831,7 @@
             header.addEventListener('click', () => {
                 const content = header.nextElementSibling;
                 content.classList.toggle('active');
-                // Aggiorna la posizione del BOM ogni volta che un pannello viene espanso o collassato
-                setTimeout(updateBomPosition, 0); // Timeout per garantire il rendering
+                setTimeout(updatePanelPositions, 0); // Timeout per garantire il rendering
             });
         });
 
@@ -853,7 +859,7 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            updateBomPosition(); // Aggiorna posizione al ridimensionamento
+            updatePanelPositions(); // Aggiorna posizione al ridimensionamento
         });
     </script>
 </body>
