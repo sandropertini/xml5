@@ -61,13 +61,13 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(data, 'text/xml');
                 
-                // Estrazione dei passaggi procedurali considerando la struttura annidata
-                const mainProcedure = xmlDoc.getElementsByTagName('mainProcedure')[0];
-                if (!mainProcedure) {
-                    document.getElementById('error').textContent = 'Struttura XML non valida: mainProcedure non trovato';
+                // Estrazione dei passaggi procedurali da <mainfunc>
+                const mainFunc = xmlDoc.getElementsByTagName('mainfunc')[0];
+                if (!mainFunc) {
+                    document.getElementById('error').textContent = 'Struttura XML non valida: mainfunc non trovato';
                     return;
                 }
-                const steps = mainProcedure.getElementsByTagName('proceduralStep');
+                const steps = mainFunc.getElementsByTagName('step1');
                 const stepList = document.getElementById('steps');
                 
                 if (steps.length === 0) {
