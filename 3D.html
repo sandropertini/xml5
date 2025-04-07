@@ -23,10 +23,10 @@
         }
         #bomContainer { 
             position: absolute; 
-            top: 60px; /* Posizionato sotto il pannello animazioni */
             left: 10px; 
             z-index: 100; 
             width: 250px;
+            /* 'top' sarà gestito dinamicamente via JS */
         }
         
         .panel {
@@ -116,7 +116,7 @@
         
         #controlsBar {
             position: absolute;
-            top: 10px; /* Spostato in alto */
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
@@ -173,7 +173,7 @@
 
         #topControls {
             position: absolute;
-            bottom: 15px; /* Spostato in basso */
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
@@ -246,7 +246,7 @@
 
         #lightSliderContainer {
             position: absolute;
-            top: 60px; /* Resta sotto il nuovo #controlsBar */
+            top: 60px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
@@ -428,6 +428,15 @@
         let activeAnimationItem = null;
         let selectedParts = new Set();
         let originalMaterials = new Map();
+
+        // Funzione per aggiornare dinamicamente la posizione del pannello BOM
+        function updateBomPosition() {
+            const animationContainer = document.getElementById('animationContainer');
+            const bomContainer = document.getElementById('bomContainer');
+            const animationHeight = animationContainer.offsetHeight;
+            const margin = 10; // Spazio tra i pannelli
+            bomContainer.style.top = `${animationHeight + margin + 10}px`; // 10px è il 'top' iniziale di animationContainer
+        }
 
         function applyPreviousAnimations(index) {
             if (!mixer || index < 0) return;
@@ -656,7 +665,6 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
-                // Filtra e ordina le animazioni
                 const stepAnimations = gltf.animations
                     .filter(clip => /^Step\d+(\.\d+)?$/.test(clip.name))
                     .map(clip => ({
@@ -671,7 +679,6 @@
 
                 console.log('Animazioni ordinate:', stepAnimations.map(a => a.name));
 
-                // Popola la lista con le animazioni ordinate
                 stepAnimations.forEach((anim, index) => {
                     const action = mixer.clipAction(anim.clip);
                     action.setLoop(THREE.LoopOnce);
@@ -800,6 +807,9 @@
                 });
 
                 window.addEventListener('dblclick', zoomToSelection);
+
+                // Aggiorna la posizione del pannello BOM dopo il caricamento iniziale
+                updateBomPosition();
             },
             function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% caricato');
@@ -809,10 +819,13 @@
             }
         );
 
+        // Gestione dinamica dei pannelli collassabili
         document.querySelectorAll('.panel-header').forEach(header => {
             header.addEventListener('click', () => {
                 const content = header.nextElementSibling;
                 content.classList.toggle('active');
+                // Aggiorna la posizione del BOM ogni volta che un pannello viene espanso o collassato
+                setTimeout(updateBomPosition, 0); // Timeout per garantire il rendering
             });
         });
 
@@ -840,6 +853,7 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            updateBomPosition(); // Aggiorna posizione al ridimensionamento
         });
     </script>
 </body>
