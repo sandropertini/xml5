@@ -499,6 +499,15 @@
                 actions.forEach(actionGroup => actionGroup.forEach(action => action.stop()));
                 applyPreviousAnimations(index);
 
+                // Evidenzia lo step immediatamente
+                const listItems = animationList.getElementsByTagName('li');
+                if (listItems[index]) {
+                    if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                    listItems[index].classList.add('active');
+                    activeAnimationItem = listItems[index];
+                    listItems[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
                 const stepActions = actions[index];
                 let currentActionIndex = 0;
                 let parallelActions = [];
@@ -521,13 +530,6 @@
 
                 function playNextSequentialAction() {
                     if (currentActionIndex >= stepActions.length) {
-                        if (activeAnimationItem) activeAnimationItem.classList.remove('active');
-                        const listItems = animationList.getElementsByTagName('li');
-                        if (listItems[index]) {
-                            listItems[index].classList.add('active');
-                            activeAnimationItem = listItems[index];
-                            listItems[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
                         return;
                     }
 
@@ -631,6 +633,11 @@
                         actionIndex++;
                     }
 
+                    if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                    listItems[currentIndex].classList.add('active');
+                    activeAnimationItem = listItems[currentIndex];
+                    listItems[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+
                     parallelActions.forEach(action => {
                         action.reset();
                         action.setLoop(THREE.LoopOnce);
@@ -650,10 +657,6 @@
                         action.setLoop(THREE.LoopOnce);
                         action.clampWhenFinished = true;
                         action.play();
-
-                        if (activeAnimationItem) activeAnimationItem.classList.remove('active');
-                        listItems[currentIndex].classList.add('active');
-                        activeAnimationItem = listItems[currentIndex];
 
                         const animationName = stepActions.find(a => !a.getClip().name.includes('_') && !a.getClip().name.includes('/'))?.getClip().name || stepActions[0].getClip().name;
                         window.parent.postMessage({ type: 'animationSelected', name: animationName }, '*');
