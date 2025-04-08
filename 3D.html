@@ -503,17 +503,15 @@
                 let currentActionIndex = 0;
                 let parallelActions = [];
 
-                // Identifica le animazioni parallele (quelle prima delle sequenziali)
                 while (currentActionIndex < stepActions.length && stepActions[currentActionIndex].getClip().name.includes('/')) {
                     parallelActions.push(stepActions[currentActionIndex]);
                     currentActionIndex++;
                 }
                 if (currentActionIndex === 0 && stepActions.length > 0) {
-                    parallelActions.push(stepActions[0]); // Aggiunge il main se non ci sono parallele
+                    parallelActions.push(stepActions[0]);
                     currentActionIndex++;
                 }
 
-                // Riproduci tutte le animazioni parallele contemporaneamente
                 parallelActions.forEach(action => {
                     action.reset();
                     action.setLoop(THREE.LoopOnce);
@@ -524,9 +522,11 @@
                 function playNextSequentialAction() {
                     if (currentActionIndex >= stepActions.length) {
                         if (activeAnimationItem) activeAnimationItem.classList.remove('active');
-                        if (listItem) {
-                            listItem.classList.add('active');
-                            activeAnimationItem = listItem;
+                        const listItems = animationList.getElementsByTagName('li');
+                        if (listItems[index]) {
+                            listItems[index].classList.add('active');
+                            activeAnimationItem = listItems[index];
+                            listItems[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
                         return;
                     }
@@ -546,7 +546,6 @@
                     });
                 }
 
-                // Avvia le sequenziali dopo che tutte le parallele sono finite
                 let finishedCount = 0;
                 parallelActions.forEach(action => {
                     mixer.addEventListener('finished', function onParallelFinished(e) {
@@ -560,7 +559,6 @@
                     });
                 });
 
-                // Invia il messaggio al genitore con il nome dell'animazione principale
                 const mainAction = stepActions.find(action => !action.getClip().name.includes('_') && !action.getClip().name.includes('/')) || stepActions[0];
                 const animationName = mainAction.getClip().name;
                 window.parent.postMessage({ type: 'animationSelected', name: animationName }, '*');
@@ -569,10 +567,19 @@
 
         function playAnimationByName(animationName) {
             if (!mixer || !actions.length) return;
-            const index = actions.findIndex(actionGroup => actionGroup.some(action => action.getClip().name === animationName));
-            if (index !== -1) {
-                const listItems = animationList.getElementsByTagName('li');
-                playAnimation(index, listItems[index]);
+            const stepNumber = animationName.replace('Step', ''); // Es. "1.", "1.1"
+            const listItems = animationList.getElementsByTagName('li');
+            let targetIndex = -1;
+
+            for (let i = 0; i < listItems.length; i++) {
+                if (listItems[i].dataset.stepNumber === stepNumber) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+
+            if (targetIndex !== -1) {
+                playAnimation(targetIndex, listItems[targetIndex]);
             }
         }
 
@@ -822,7 +829,11 @@
                     }
                 });
 
-                const sortedKeys = Object.keys(animationsMap).sort((a, b) => parseFloat(a) - parseFloat(b));
+                const sortedKeys = Object.keys(animationsMap).sort((a, b) => {
+                    const aParts = a.split('.').map(Number);
+                    const bParts = b.split('.').map(Number);
+                    return aParts[0] - bParts[0] || (aParts[1] || 0) - (bParts[1] || 0);
+                });
                 sortedKeys.forEach((stepKey, index) => {
                     const { main, subs, parallel } = animationsMap[stepKey];
                     const stepActions = [];
@@ -839,7 +850,7 @@
                         const action = mixer.clipAction(par.clip);
                         action.setLoop(THREE.LoopOnce);
                         action.clampWhenFinished = true;
-                        stepActions.unshift(action); // Parallele all'inizio
+                        stepActions.unshift(action);
                     });
 
                     subs.sort((a, b) => a.index - b.index);
@@ -855,6 +866,7 @@
                     if (main) {
                         const listItem = document.createElement('li');
                         listItem.textContent = main.name;
+                        listItem.dataset.stepNumber = stepKey + '.';
                         listItem.addEventListener('click', () => playAnimation(index, listItem));
                         animationList.appendChild(listItem);
                     }
