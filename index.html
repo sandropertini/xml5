@@ -191,7 +191,6 @@
     </div>
 
     <script>
-        // Stato dell'iframe
         let iframeReady = false;
         const iframe = document.getElementById('viewer');
         iframe.addEventListener('load', () => {
@@ -288,10 +287,10 @@
                     div.className = className;
                     div.innerHTML = prefix ? `${prefix} ${text}` : text;
                     if (className === 'step') {
-                        const stepNumber = prefix.replace('.', '').trim();
+                        const stepNumber = prefix.trim(); // Es. "1.", "1.1"
                         div.dataset.stepNumber = stepNumber;
                         div.addEventListener('click', () => {
-                            const animationName = `Step${stepNumber}`;
+                            const animationName = `Step${stepNumber}`; // Es. "Step1.", "Step1.1"
                             if (iframeReady) {
                                 iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
                                 console.log(`Invio messaggio: ${animationName}`);
@@ -378,11 +377,10 @@
                 document.getElementById('error').textContent = `Errore nel caricamento del file XML: ${error.message}`;
             });
 
-        // Listener per messaggi dall'iframe
         window.addEventListener('message', (e) => {
             if (e.data.type === 'animationSelected') {
-                const animationName = e.data.name;
-                const stepNumber = animationName.replace('Step', '');
+                const animationName = e.data.name; // Es. "Step1.", "Step1.1"
+                const stepNumber = animationName.replace('Step', ''); // Es. "1.", "1.1"
                 const steps = document.querySelectorAll('.step');
                 steps.forEach(step => {
                     step.classList.remove('active');
@@ -394,13 +392,11 @@
             }
         });
 
-        // Logica del trascinamento per il resize
         const viewer = document.getElementById('viewer');
         const procedure = document.getElementById('procedure');
         const resizer = document.getElementById('resizer');
         const container = document.getElementById('container');
 
-        // Variabili per il trascinamento
         let isDragging = false;
         let startX;
         let initialViewerWidthPx;
@@ -410,50 +406,42 @@
             const deltaX = currentX - startX;
             let newViewerWidthPx = initialViewerWidthPx + deltaX;
 
-            // Limiti in pixel basati sulle percentuali
-            const minWidthPx = containerWidth * 0.1; // 10%
-            const maxWidthPx = containerWidth * 0.9; // 90%
+            const minWidthPx = containerWidth * 0.1;
+            const maxWidthPx = containerWidth * 0.9;
             newViewerWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newViewerWidthPx));
 
-            // Converti in percentuale
             const newViewerWidthPercent = (newViewerWidthPx / containerWidth) * 100;
 
-            // Aggiorna le larghezze
             viewer.style.width = `${newViewerWidthPercent}%`;
             procedure.style.width = `${100 - newViewerWidthPercent}%`;
         }
 
-        // Evento al clic sul resizer
         resizer.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX;
             initialViewerWidthPx = viewer.offsetWidth;
-            viewer.style.pointerEvents = 'none'; // Disabilita interattività dell'iframe
+            viewer.style.pointerEvents = 'none';
             e.preventDefault();
         });
 
-        // Evento di movimento del mouse
         document.addEventListener('mousemove', (e) => {
             if (isDragging) {
                 updateWidths(e.clientX);
             }
         });
 
-        // Evento di rilascio del mouse
         document.addEventListener('mouseup', () => {
             if (isDragging) {
                 isDragging = false;
-                viewer.style.pointerEvents = 'auto'; // Riattiva interattività dell'iframe
+                viewer.style.pointerEvents = 'auto';
             }
         });
 
-        // Inizializzazione dimensioni al caricamento
         window.addEventListener('load', () => {
             viewer.style.width = '30%';
             procedure.style.width = '70%';
         });
 
-        // Adattamento al ridimensionamento della finestra
         window.addEventListener('resize', () => {
             const currentViewerPercentage = parseFloat(viewer.style.width) || 30;
             viewer.style.width = `${currentViewerPercentage}%`;
