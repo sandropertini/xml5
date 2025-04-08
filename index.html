@@ -381,6 +381,7 @@
             if (e.data.type === 'animationSelected') {
                 const animationName = e.data.name; // Es. "Step1.", "Step1.1"
                 const stepNumber = animationName.replace('Step', ''); // Es. "1.", "1.1"
+                console.log(`Ricevuto messaggio: ${animationName}, stepNumber: ${stepNumber}`);
                 const steps = document.querySelectorAll('.step');
                 steps.forEach(step => {
                     step.classList.remove('active');
