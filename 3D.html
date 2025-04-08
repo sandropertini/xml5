@@ -479,45 +479,65 @@
         function applyPreviousAnimations(index) {
             if (!mixer || index < 0) return;
 
-            actions.forEach(action => action.stop());
+            actions.forEach(actionGroup => actionGroup.forEach(action => action.stop()));
             mixer.time = 0;
 
             for (let i = 0; i < index; i++) {
-                const action = actions[i];
-                action.reset();
-                action.setLoop(THREE.LoopOnce);
-                action.clampWhenFinished = true;
-                action.play();
-                mixer.update(action.getClip().duration);
+                const stepActions = actions[i];
+                stepActions.forEach(action => {
+                    action.reset();
+                    action.setLoop(THREE.LoopOnce);
+                    action.clampWhenFinished = true;
+                    action.play();
+                    mixer.update(action.getClip().duration);
+                });
             }
         }
 
         function playAnimation(index, listItem) {
-            if (mixer && actions[index]) {
-                actions.forEach(action => action.stop());
+            if (mixer && actions[index] && actions[index].length > 0) {
+                actions.forEach(actionGroup => actionGroup.forEach(action => action.stop()));
                 applyPreviousAnimations(index);
 
-                const action = actions[index];
-                action.setLoop(THREE.LoopOnce);
-                action.clampWhenFinished = true;
-                action.reset();
-                action.play();
+                const stepActions = actions[index];
+                let currentActionIndex = 0;
 
-                if (activeAnimationItem) activeAnimationItem.classList.remove('active');
-                if (listItem) {
-                    listItem.classList.add('active');
-                    activeAnimationItem = listItem;
+                function playNextAction() {
+                    if (currentActionIndex >= stepActions.length) {
+                        if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                        if (listItem) {
+                            listItem.classList.add('active');
+                            activeAnimationItem = listItem;
+                        }
+                        return;
+                    }
+
+                    const action = stepActions[currentActionIndex];
+                    action.reset();
+                    action.setLoop(THREE.LoopOnce);
+                    action.clampWhenFinished = true;
+                    action.play();
+
+                    mixer.addEventListener('finished', function onFinished(e) {
+                        if (e.action === action) {
+                            mixer.removeEventListener('finished', onFinished);
+                            currentActionIndex++;
+                            playNextAction();
+                        }
+                    });
                 }
 
-                // Invia il messaggio al genitore con il nome dell'animazione
-                const animationName = actions[index].getClip().name;
+                playNextAction();
+
+                const mainAction = stepActions[0];
+                const animationName = mainAction.getClip().name;
                 window.parent.postMessage({ type: 'animationSelected', name: animationName }, '*');
             }
         }
 
         function playAnimationByName(animationName) {
             if (!mixer || !actions.length) return;
-            const index = actions.findIndex(action => action.getClip().name === animationName);
+            const index = actions.findIndex(actionGroup => actionGroup[0].getClip().name === animationName);
             if (index !== -1) {
                 const listItems = animationList.getElementsByTagName('li');
                 playAnimation(index, listItems[index]);
@@ -526,7 +546,7 @@
 
         function stopAllAnimations() {
             if (mixer) {
-                actions.forEach(action => action.stop());
+                actions.forEach(actionGroup => actionGroup.forEach(action => action.stop()));
                 isPlayingAll = false;
                 if (activeAnimationItem) activeAnimationItem.classList.remove('active');
                 activeAnimationItem = null;
@@ -536,8 +556,10 @@
 
         function pauseAnimations() {
             if (mixer) {
-                actions.forEach(action => {
-                    if (action.isRunning()) action.paused = true;
+                actions.forEach(actionGroup => {
+                    actionGroup.forEach(action => {
+                        if (action.isRunning()) action.paused = true;
+                    });
                 });
                 isPlayingAll = false;
             }
@@ -549,7 +571,7 @@
                 let currentIndex = 0;
                 const listItems = animationList.getElementsByTagName('li');
 
-                function playNext() {
+                function playNextStep() {
                     if (currentIndex >= actions.length || !isPlayingAll) {
                         isPlayingAll = false;
                         if (activeAnimationItem) activeAnimationItem.classList.remove('active');
@@ -557,29 +579,41 @@
                         return;
                     }
 
-                    const action = actions[currentIndex];
-                    action.reset();
-                    action.setLoop(THREE.LoopOnce);
-                    action.clampWhenFinished = true;
-                    action.play();
+                    const stepActions = actions[currentIndex];
+                    let actionIndex = 0;
 
-                    if (activeAnimationItem) activeAnimationItem.classList.remove('active');
-                    listItems[currentIndex].classList.add('active');
-                    activeAnimationItem = listItems[currentIndex];
-
-                    // Invia il messaggio al genitore per ogni animazione
-                    const animationName = action.getClip().name;
-                    window.parent.postMessage({ type: 'animationSelected', name: animationName }, '*');
-
-                    mixer.addEventListener('finished', function onFinished(e) {
-                        if (e.action === action) {
-                            mixer.removeEventListener('finished', onFinished);
+                    function playNextAction() {
+                        if (actionIndex >= stepActions.length) {
                             currentIndex++;
-                            playNext();
+                            playNextStep();
+                            return;
                         }
-                    });
+
+                        const action = stepActions[actionIndex];
+                        action.reset();
+                        action.setLoop(THREE.LoopOnce);
+                        action.clampWhenFinished = true;
+                        action.play();
+
+                        if (activeAnimationItem) activeAnimationItem.classList.remove('active');
+                        listItems[currentIndex].classList.add('active');
+                        activeAnimationItem = listItems[currentIndex];
+
+                        const animationName = action.getClip().name;
+                        window.parent.postMessage({ type: 'animationSelected', name: animationName }, '*');
+
+                        mixer.addEventListener('finished', function onFinished(e) {
+                            if (e.action === action) {
+                                mixer.removeEventListener('finished', onFinished);
+                                actionIndex++;
+                                playNextAction();
+                            }
+                        });
+                    }
+
+                    playNextAction();
                 }
-                playNext();
+                playNextStep();
             }
         }
 
@@ -704,20 +738,52 @@
 
                 mixer = new THREE.AnimationMixer(model);
 
-                const stepAnimations = gltf.animations
-                    .filter(clip => /^Step\d+(\.\d+)?$/.test(clip.name))
-                    .map(clip => ({ clip, name: clip.name }))
-                    .sort((a, b) => parseFloat(a.name.replace('Step', '')) - parseFloat(b.name.replace('Step', '')));
+                const animationsMap = {};
+                gltf.animations.forEach(clip => {
+                    const name = clip.name;
+                    const mainStepMatch = name.match(/^Step(\d+(?:\.\d+)?)$/);
+                    const subStepMatch = name.match(/^Step(\d+(?:\.\d+)?)_(\d+)$/);
 
-                stepAnimations.forEach((anim, index) => {
-                    const action = mixer.clipAction(anim.clip);
-                    action.setLoop(THREE.LoopOnce);
-                    action.clampWhenFinished = true;
-                    actions.push(action);
-                    const listItem = document.createElement('li');
-                    listItem.textContent = anim.clip.name;
-                    listItem.addEventListener('click', () => playAnimation(index, listItem));
-                    animationList.appendChild(listItem);
+                    if (mainStepMatch) {
+                        const stepKey = mainStepMatch[1];
+                        if (!animationsMap[stepKey]) animationsMap[stepKey] = { main: null, subs: [] };
+                        animationsMap[stepKey].main = clip;
+                    } else if (subStepMatch) {
+                        const stepKey = subStepMatch[1];
+                        const subIndex = parseInt(subStepMatch[2]);
+                        if (!animationsMap[stepKey]) animationsMap[stepKey] = { main: null, subs: [] };
+                        animationsMap[stepKey].subs.push({ clip, index: subIndex });
+                    }
+                });
+
+                const sortedKeys = Object.keys(animationsMap).sort((a, b) => parseFloat(a) - parseFloat(b));
+                sortedKeys.forEach((stepKey, index) => {
+                    const { main, subs } = animationsMap[stepKey];
+                    const stepActions = [];
+
+                    if (main) {
+                        const action = mixer.clipAction(main);
+                        action.setLoop(THREE.LoopOnce);
+                        action.clampWhenFinished = true;
+                        stepActions.push(action);
+                    }
+
+                    subs.sort((a, b) => a.index - b.index);
+                    subs.forEach(sub => {
+                        const action = mixer.clipAction(sub.clip);
+                        action.setLoop(THREE.LoopOnce);
+                        action.clampWhenFinished = true;
+                        stepActions.push(action);
+                    });
+
+                    actions.push(stepActions);
+
+                    if (main) {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = main.name;
+                        listItem.addEventListener('click', () => playAnimation(index, listItem));
+                        animationList.appendChild(listItem);
+                    }
                 });
 
                 model.children.forEach((child, index) => {
@@ -726,7 +792,7 @@
                     bomItem.className = 'bom-item';
                     const button = document.createElement('button');
                     button.className = 'bom-button';
-                    const partName = child.name && child.name !== '' ? child.name : `Parte ${index +1}`;
+                    const partName = child.name && child.name !== '' ? child.name : `Parte ${index + 1}`;
                     button.textContent = partName;
                     button.addEventListener('click', (e) => highlightPart(child, button, e.ctrlKey));
                     bomItem.appendChild(button);
