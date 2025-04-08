@@ -198,6 +198,14 @@
             console.log('Iframe caricato');
         });
 
+        // Funzione per evidenziare un passo
+        function highlightStep(stepElement) {
+            console.log(`Evidenziando passo con dataset.stepNumber: ${stepElement.dataset.stepNumber}`);
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+            stepElement.classList.add('active');
+            stepElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
         fetch('DEMO.xml')
             .then(response => {
                 if (!response.ok) {
@@ -291,14 +299,17 @@
                         div.dataset.stepNumber = stepNumber;
                         div.addEventListener('click', () => {
                             console.log(`Cliccato passo: ${stepNumber}`);
-                            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
-                            div.classList.add('active');
+                            highlightStep(div); // Evidenzia il passo
                             const animationName = `Step${stepNumber}`; // Es. "Step1.", "Step1.1"
                             if (iframeReady) {
-                                iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
-                                console.log(`Invio messaggio a iframe: ${animationName}`);
+                                try {
+                                    iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
+                                    console.log(`Messaggio inviato a iframe: ${animationName}`);
+                                } catch (error) {
+                                    console.error(`Errore nell'invio del messaggio a iframe: ${error}`);
+                                }
                             } else {
-                                console.log('Iframe non ancora pronto, animazione non avviata');
+                                console.log('Iframe non pronto, animazione non avviata');
                             }
                         });
                     }
@@ -386,10 +397,8 @@
                 const steps = document.querySelectorAll('.step');
                 let found = false;
                 steps.forEach(step => {
-                    step.classList.remove('active');
                     if (step.dataset.stepNumber === stepNumber) {
-                        step.classList.add('active');
-                        step.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        highlightStep(step);
                         found = true;
                         console.log(`Passo ${stepNumber} trovato ed evidenziato`);
                     }
