@@ -290,14 +290,15 @@
                         const stepNumber = prefix.trim(); // Es. "1.", "1.1"
                         div.dataset.stepNumber = stepNumber;
                         div.addEventListener('click', () => {
+                            console.log(`Cliccato passo: ${stepNumber}`);
+                            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+                            div.classList.add('active');
                             const animationName = `Step${stepNumber}`; // Es. "Step1.", "Step1.1"
                             if (iframeReady) {
                                 iframe.contentWindow.postMessage({ type: 'playAnimation', name: animationName }, '*');
-                                console.log(`Invio messaggio: ${animationName}`);
-                                document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
-                                div.classList.add('active');
+                                console.log(`Invio messaggio a iframe: ${animationName}`);
                             } else {
-                                console.log('Iframe non ancora pronto');
+                                console.log('Iframe non ancora pronto, animazione non avviata');
                             }
                         });
                     }
@@ -381,15 +382,21 @@
             if (e.data.type === 'animationSelected') {
                 const animationName = e.data.name; // Es. "Step1.", "Step1.1"
                 const stepNumber = animationName.replace('Step', ''); // Es. "1.", "1.1"
-                console.log(`Ricevuto messaggio: ${animationName}, stepNumber: ${stepNumber}`);
+                console.log(`Ricevuto messaggio da iframe: ${animationName}, cercando passo: ${stepNumber}`);
                 const steps = document.querySelectorAll('.step');
+                let found = false;
                 steps.forEach(step => {
                     step.classList.remove('active');
                     if (step.dataset.stepNumber === stepNumber) {
                         step.classList.add('active');
                         step.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        found = true;
+                        console.log(`Passo ${stepNumber} trovato ed evidenziato`);
                     }
                 });
+                if (!found) {
+                    console.log(`Passo ${stepNumber} non trovato tra i passi della procedura`);
+                }
             }
         });
 
